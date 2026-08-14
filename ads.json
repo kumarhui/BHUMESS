@@ -1,0 +1,29 @@
+﻿[
+  {
+    "id": "ad1",
+    "badgeText": "Jora UTILITY",
+    "title": "CUET Score Calculator",
+    "subtitle": "Calculate your PG marks & percentile instantly",
+    "iconName": "Analytics",
+    "gradientColors": ["#2563EB", "#7C3AED"],
+    "targetUrl": "https://kumarhui.github.io/BHU_JI_v2/ad1.html"
+  },
+  {
+    "id": "ad2",
+    "badgeText": "ADMISSION PORTAL",
+    "title": "BHU Cutoff & Rank Predictor",
+    "subtitle": "Check category-wise seat probabilities",
+    "iconName": "School",
+    "gradientColors": ["#059669", "#10B981"],
+    "targetUrl": "https://kumarhui.github.io/BHU_JI_v2/ad2.html"
+  },
+  {
+    "id": "ad3",
+    "badgeText": "STUDENT",
+    "title": "Hostel & Campus Updates",
+    "subtitle": "Latest notifications & hostel allocation news",
+    "iconName": "Campaign",
+    "gradientColors": ["#D97706", "#EA580C"],
+    "targetUrl": "https://kumarhui.github.io/BHU_JI_v2/ad3.html"
+  }
+]

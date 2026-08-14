@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "272028293626",
+    "firebase_url": "https://bhu-mess-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "bhu-mess",
+    "storage_bucket": "bhu-mess.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:272028293626:android:6e386bd16ab6746538ec43",
+        "android_client_info": {
+          "package_name": "cvam.dignity.bhumess"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBFSIEjFkB33U1h373-QLlV7KoRJyC4vD8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

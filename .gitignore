@@ -1,0 +1,100 @@
+# ==============================
+# Android / Gradle
+# ==============================
+
+.gradle/
+build/
+*/build/
+
+# Gradle local configuration
+local.properties
+
+# ==============================
+# Android Studio / IntelliJ
+# ==============================
+
+.idea/
+*.iml
+
+# ==============================
+# Kotlin
+# ==============================
+
+.kotlin/
+
+# ==============================
+# Native / C++
+# ==============================
+
+.cxx/
+.externalNativeBuild/
+
+# ==============================
+# Android Studio generated files
+# ==============================
+
+captures/
+
+# ==============================
+# OS generated files
+# ==============================
+
+.DS_Store
+Thumbs.db
+
+# ==============================
+# Logs
+# ==============================
+
+*.log
+
+# ==============================
+# Temporary files
+# ==============================
+
+*.tmp
+*.temp
+
+# ==============================
+# Build outputs
+# ==============================
+
+/build/
+*/build/
+
+# ==============================
+# Signing keys - NEVER commit
+# ==============================
+
+*.jks
+*.keystore
+*.p12
+
+# ==============================
+# ==============================
+# Firebase / local secrets
+# ==============================
+
+# Service account credentials - NEVER commit
+app/src/main/res/raw/service_account_credentials.json
+
+# Uncomment if your google-services.json contains
+# environment-specific/private configuration:
+# google-services.json
+
+# ==============================
+# Secrets / environment files
+# ==============================
+
+.env
+.env.*
+!.env.example
+
+# Android build/release artifacts
+app/release/
+*.apk
+*.aab
+*.dm
+
+# Source archive
+app/src.zip
