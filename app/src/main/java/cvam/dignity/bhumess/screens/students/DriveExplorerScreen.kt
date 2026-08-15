@@ -52,6 +52,57 @@ import com.google.android.gms.ads.LoadAdError
  * 5242880     -> 5.0 MB
  * 1073741824  -> 1.0 GB
  */
+
+private fun cancelDownload(
+    context: Context,
+    fileName: String
+) {
+    val dm = context.getSystemService(
+        Context.DOWNLOAD_SERVICE
+    ) as DownloadManager
+
+    val query = DownloadManager.Query()
+    val cursor = dm.query(query)
+
+    try {
+        if (cursor.moveToFirst()) {
+            do {
+                val titleIndex =
+                    cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)
+
+                val idIndex =
+                    cursor.getColumnIndex(DownloadManager.COLUMN_ID)
+
+                if (titleIndex >= 0 && idIndex >= 0) {
+                    val title = cursor.getString(titleIndex)
+
+                    if (title == fileName) {
+                        val downloadId = cursor.getLong(idIndex)
+                        dm.remove(downloadId)
+                    }
+                }
+            } while (cursor.moveToNext())
+        }
+    } finally {
+        cursor.close()
+    }
+}
+
+private fun deleteLocalFile(
+    file: File
+): Boolean {
+    return try {
+        !file.exists() || file.delete()
+    } catch (e: Exception) {
+        Log.e(
+            "DriveExplorer",
+            "Failed to delete ${file.absolutePath}",
+            e
+        )
+        false
+    }
+}
+
 private fun formatFileSize(bytes: Long?): String {
 
     if (bytes == null || bytes <= 0L) {
@@ -689,6 +740,26 @@ fun FolderContent(
                     downloadProgress =
                         progress,
 
+                    onDelete = {
+                        if (progress != null) {
+                            cancelDownload(
+                                context,
+                                file.name
+                            )
+
+                            if (downloadingFiles is MutableMap) {
+                                @Suppress("UNCHECKED_CAST")
+                                (
+                                        downloadingFiles as MutableMap<String, Float>
+                                        ).remove(file.name)
+                            }
+                        }
+
+                        if (isDownloaded) {
+                            deleteLocalFile(localFile)
+                        }
+                    },
+
                     onClick = {
 
                         /*
@@ -790,254 +861,255 @@ fun FileRow(
     isFolder: Boolean,
     isDownloaded: Boolean,
     downloadProgress: Float?,
+    onDelete: () -> Unit,
     onClick: () -> Unit
 ) {
+    var showDeleteConfirmation by remember {
+        mutableStateOf(false)
+    }
 
-    Surface(
+    val progress =
+        (downloadProgress ?: 0f)
+            .coerceIn(0f, 1f)
 
-        onClick = onClick,
-
-        modifier =
-            Modifier.fillMaxWidth(),
-
-        shape =
-            RoundedCornerShape(16.dp),
-
-        color =
-            Color.White,
-
-        shadowElevation =
-            0.5.dp
-
+    /*
+     * The progress fill is drawn from left to right behind
+     * the card contents. The card itself remains clickable.
+     */
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
     ) {
-
-        Row(
-
-            modifier =
-                Modifier.padding(16.dp),
-
-            verticalAlignment =
-                Alignment.CenterVertically
-
-        ) {
-
-            /*
-             * File / folder icon.
-             */
+        if (!isFolder && downloadProgress != null) {
             Box(
-
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(
-                        RoundedCornerShape(10.dp)
-                    )
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
                     .background(
-
-                        if (isFolder)
-
-                            Color(0xFFF59E0B)
-                                .copy(0.1f)
-
-                        else
-
-                            Color(0xFF3B82F6)
-                                .copy(0.1f)
-                    ),
-
-                contentAlignment =
-                    Alignment.Center
-
-            ) {
-
-                Icon(
-
-                    imageVector =
-
-                        if (isFolder)
-
-                            Icons.Rounded.Folder
-
-                        else
-
-                            Icons.Rounded.Description,
-
-                    contentDescription =
-                        null,
-
-                    tint =
-
-                        if (isFolder)
-
-                            Color(0xFFF59E0B)
-
-                        else
-
-                            Color(0xFF3B82F6),
-
-                    modifier =
-                        Modifier.size(22.dp)
-                )
-            }
-
-
-            Spacer(
-                Modifier.width(16.dp)
+                        MaterialTheme.colorScheme.primary.copy(
+                            alpha = 0.10f
+                        )
+                    )
             )
+        }
 
-
-            /*
-             * Filename + file size.
-             */
-            Column(
-
-                modifier =
-                    Modifier.weight(1f)
-
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent,
+            shadowElevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-
-                Text(
-
-                    text = file.name,
-
-                    fontWeight =
-                        FontWeight.Bold,
-
-                    fontSize =
-                        14.sp,
-
-                    maxLines =
-                        1,
-
-                    overflow =
-                        TextOverflow.Ellipsis
-                )
-
-
-                Text(
-
-                    text =
-
-                        if (isFolder) {
-
-                            "Folder"
-
-                        } else {
-
-                            "PDF • ${
-                                formatFileSize(
-                                    file.sizeBytes
-                                )
-                            }"
-                        },
-
-                    fontSize =
-                        11.sp,
-
-                    color =
-                        Color.Gray,
-
-                    maxLines =
-                        1,
-
-                    overflow =
-                        TextOverflow.Ellipsis
-                )
-            }
-
-
-            /*
-             * Right-side action.
-             */
-            when {
-
                 /*
-                 * Folder.
+                 * File / folder icon.
                  */
-                isFolder -> {
-
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isFolder) {
+                                Color(0xFFF59E0B).copy(0.1f)
+                            } else {
+                                Color(0xFF3B82F6).copy(0.1f)
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
                     Icon(
-
-                        Icons.Rounded.ChevronRight,
-
-                        contentDescription =
-                            null,
-
+                        imageVector =
+                            if (isFolder) {
+                                Icons.Rounded.Folder
+                            } else {
+                                Icons.Rounded.Description
+                            },
+                        contentDescription = null,
                         tint =
-                            Color.LightGray
+                            if (isFolder) {
+                                Color(0xFFF59E0B)
+                            } else {
+                                Color(0xFF3B82F6)
+                            },
+                        modifier = Modifier.size(22.dp)
                     )
                 }
 
+                Spacer(
+                    Modifier.width(16.dp)
+                )
 
                 /*
-                 * Currently downloading.
+                 * Filename + file size.
                  */
-                downloadProgress != null -> {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = file.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
 
-                    CircularProgressIndicator(
-
-                        progress = {
-                            downloadProgress
-                        },
-
-                        modifier =
-                            Modifier.size(20.dp),
-
-                        strokeWidth =
-                            3.dp,
-
+                    Text(
+                        text =
+                            if (isFolder) {
+                                "Folder"
+                            } else {
+                                if (downloadProgress != null) {
+                                    "Downloading • ${(progress * 100).toInt()}%"
+                                } else {
+                                    "PDF • ${
+                                        formatFileSize(
+                                            file.sizeBytes
+                                        )
+                                    }"
+                                }
+                            },
+                        fontSize = 11.sp,
                         color =
-                            MaterialTheme
-                                .colorScheme
-                                .primary,
-
-                        trackColor =
-                            Color.LightGray
-                                .copy(0.2f)
+                            if (downloadProgress != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Gray
+                            },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                 }
 
-
                 /*
-                 * Already downloaded.
+                 * Right-side action.
                  */
-                isDownloaded -> {
+                when {
+                    isFolder -> {
+                        Icon(
+                            Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = Color.LightGray
+                        )
+                    }
 
-                    Icon(
+                    downloadProgress != null -> {
+                        /*
+                         * Delete/cancel the active download.
+                         * The confirmation dialog is shown before
+                         * DownloadManager.remove() is called.
+                         */
+                        IconButton(
+                            onClick = {
+                                showDeleteConfirmation = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Cancel download",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
 
-                        Icons.Rounded.OfflinePin,
+                    isDownloaded -> {
+                        /*
+                         * Delete the downloaded local file.
+                         * Opening the PDF is still done by tapping
+                         * the card itself.
+                         */
+                        IconButton(
+                            onClick = {
+                                showDeleteConfirmation = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Delete downloaded file",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
 
-                        contentDescription =
-                            "Downloaded",
-
-                        tint =
-                            Color(0xFF10B981),
-
-                        modifier =
-                            Modifier.size(22.dp)
-                    )
-                }
-
-
-                /*
-                 * Not downloaded.
-                 */
-                else -> {
-
-                    Icon(
-
-                        Icons.Rounded.CloudDownload,
-
-                        contentDescription =
-                            "Download",
-
-                        tint =
-                            Color.LightGray,
-
-                        modifier =
-                            Modifier.size(20.dp)
-                    )
+                    else -> {
+                        Icon(
+                            Icons.Rounded.CloudDownload,
+                            contentDescription = "Download",
+                            tint = Color.LightGray,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
                 }
             }
         }
+    }
+
+    /*
+     * Delete confirmation.
+     */
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmation = false
+            },
+            icon = {
+                Icon(
+                    Icons.Rounded.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(
+                    if (downloadProgress != null) {
+                        "Cancel download?"
+                    } else {
+                        "Delete downloaded file?"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    if (downloadProgress != null) {
+                        "Do you want to cancel the download of \"${file.name}\"?"
+                    } else {
+                        "This will delete \"${file.name}\" from your device. The file will remain available in Drive."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDelete()
+                    }
+                ) {
+                    Text(
+                        if (downloadProgress != null) {
+                            "Cancel Download"
+                        } else {
+                            "Delete"
+                        },
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                    }
+                ) {
+                    Text("Keep")
+                }
+            }
+        )
     }
 }
