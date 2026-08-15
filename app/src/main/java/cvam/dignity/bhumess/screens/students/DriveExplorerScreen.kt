@@ -190,12 +190,25 @@ fun DriveExplorerScreen(
 
     val context = LocalContext.current
 
-    val folderStack = remember {
-        mutableStateListOf(initialFolderId)
+    data class FolderEntry(
+        val id: String,
+        val name: String
+    )
+
+    val folderStack = remember(
+        initialFolderId,
+        initialFolderName
+    ) {
+        mutableStateListOf(
+            FolderEntry(
+                id = initialFolderId,
+                name = initialFolderName
+            )
+        )
     }
 
-    val folderNames = remember {
-        mutableStateListOf(initialFolderName)
+    var isGoingBack by remember {
+        mutableStateOf(false)
     }
 
     /*
@@ -219,12 +232,10 @@ fun DriveExplorerScreen(
 
         if (folderStack.size > 1) {
 
-            folderStack.removeAt(
-                folderStack.size - 1
-            )
+            isGoingBack = true
 
-            folderNames.removeAt(
-                folderNames.size - 1
+            folderStack.removeAt(
+                folderStack.lastIndex
             )
 
         } else {
@@ -232,8 +243,6 @@ fun DriveExplorerScreen(
             onExitExplorer()
         }
     }
-
-
     /*
      * Poll DownloadManager every second.
      *
@@ -373,9 +382,8 @@ fun DriveExplorerScreen(
             CenterAlignedTopAppBar(
 
                 title = {
-
                     Text(
-                        text = folderNames.last(),
+                        text = folderStack.last().name,
                         fontWeight = FontWeight.Black,
                         fontSize = 18.sp,
                         maxLines = 1,
@@ -388,23 +396,19 @@ fun DriveExplorerScreen(
                     IconButton(
 
                         onClick = {
-
                             if (folderStack.size > 1) {
 
-                                folderStack.removeAt(
-                                    folderStack.size - 1
-                                )
+                                isGoingBack = true
 
-                                folderNames.removeAt(
-                                    folderNames.size - 1
+                                folderStack.removeAt(
+                                    folderStack.lastIndex
                                 )
 
                             } else {
 
                                 onExitExplorer()
                             }
-                        }
-                    ) {
+                        }                ) {
 
                         Icon(
                             Icons.AutoMirrored.Rounded.ArrowBack,
@@ -460,28 +464,25 @@ fun DriveExplorerScreen(
         ) {
 
             AnimatedContent(
-
-                targetState =
-                    folderStack.last(),
+                targetState = folderStack.last().id,
 
                 transitionSpec = {
 
-                    if (folderStack.size > 1) {
+                    if (isGoingBack) {
 
                         (
-                                slideInHorizontally {
-                                    it
-                                } + fadeIn()
+                                slideInHorizontally { -it } + fadeIn()
                                 ) togetherWith (
-                                slideOutHorizontally {
-                                    -it
-                                } + fadeOut()
+                                slideOutHorizontally { it } + fadeOut()
                                 )
 
                     } else {
 
-                        fadeIn() togetherWith
-                                fadeOut()
+                        (
+                                slideInHorizontally { it } + fadeIn()
+                                ) togetherWith (
+                                slideOutHorizontally { -it } + fadeOut()
+                                )
                     }
                 },
 
@@ -495,8 +496,14 @@ fun DriveExplorerScreen(
 
                     onFolderClick = { id, name ->
 
-                        folderStack.add(id)
-                        folderNames.add(name)
+                        isGoingBack = false
+
+                        folderStack.add(
+                            FolderEntry(
+                                id = id,
+                                name = name
+                            )
+                        )
                     },
 
                     downloadingFiles =

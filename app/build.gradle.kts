@@ -19,7 +19,7 @@ android {
     defaultConfig {
         applicationId = "cvam.dignity.bhumess"
 
-        // AndroidX PDF alpha18 supports minSdk 28
+        // AndroKidX PDF alpha18 supports minSdk 28
         minSdk = 28
 
         targetSdk = 35
