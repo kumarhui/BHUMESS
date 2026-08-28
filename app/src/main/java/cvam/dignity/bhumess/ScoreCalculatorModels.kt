@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.models
+﻿package cvam.dignity.bhumess
 
 /**
  * Clean models for the CUET Score Calculator.

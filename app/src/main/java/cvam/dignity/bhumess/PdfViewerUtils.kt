@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.utils
+﻿package cvam.dignity.bhumess
 
 import android.content.Context
 import android.content.Intent
@@ -18,7 +18,7 @@ object PdfViewerUtils {
     fun shareResourceLocation(context: Context, fileTitle: String) {
         // Construct a compelling message that forces the recipient to use the app
         val shareMessage = """
-            📚 I found the resource: "$fileTitle"
+            ðŸ“š I found the resource: "$fileTitle"
             
             You can access this PDF, along with all other BHU Study Notes, PYQs, and Syllabus directly in the "Study Resources" section of the BHU Ji App.
             

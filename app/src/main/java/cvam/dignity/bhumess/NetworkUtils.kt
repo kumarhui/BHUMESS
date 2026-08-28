@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.utils
+﻿package cvam.dignity.bhumess
 
 import android.content.Context
 import android.net.ConnectivityManager

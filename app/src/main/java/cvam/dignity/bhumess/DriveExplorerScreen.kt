@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens.students
+﻿package cvam.dignity.bhumess
 
 import android.app.DownloadManager
 import android.content.Context
@@ -29,19 +29,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.google.android.gms.ads.AdListener
-import cvam.dignity.bhumess.api.DriveApiService
-import cvam.dignity.bhumess.api.DriveFile
-import cvam.dignity.bhumess.data.DriveCacheManager
-import cvam.dignity.bhumess.navigation.SubView
-import cvam.dignity.bhumess.ads.AdConfig
-import cvam.dignity.bhumess.utils.NetworkUtils
+import cvam.dignity.bhumess.DriveApiService
+import cvam.dignity.bhumess.DriveFile
+import cvam.dignity.bhumess.DriveCacheManager
+import cvam.dignity.bhumess.SubView
+import cvam.dignity.bhumess.AdConfig
+import cvam.dignity.bhumess.NetworkUtils
 import kotlinx.coroutines.delay
 import java.io.File
 import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
-import cvam.dignity.bhumess.navigation.FolderEntry
+import cvam.dignity.bhumess.FolderEntry
 
 /*
  * Convert Google Drive file size in bytes
@@ -1002,9 +1002,9 @@ fun FileRow(
                                 "Folder"
                             } else {
                                 if (downloadProgress != null) {
-                                    "Downloading • ${(progress * 100).toInt()}%"
+                                    "Downloading â€¢ ${(progress * 100).toInt()}%"
                                 } else {
-                                    "PDF • ${
+                                    "PDF â€¢ ${
                                         formatFileSize(
                                             file.sizeBytes
                                         )
@@ -1155,3 +1155,4 @@ fun FileRow(
         )
     }
 }
+

@@ -24,6 +24,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import cvam.dignity.bhumess.FolderEntry
+import cvam.dignity.bhumess.SubView
+import cvam.dignity.bhumess.BhuHtmlViewerScreen
+import cvam.dignity.bhumess.*
+import cvam.dignity.bhumess.*
+import cvam.dignity.bhumess.*
 import cvam.dignity.bhumess.ui.theme.BHUMESSTheme
 
 class MainActivity : FragmentActivity() {
@@ -294,6 +300,15 @@ fun MainApp() {
                      * It is simply no longer exposed
                      * through the app drawer.
                      */
+                    is SubView.Profile -> {
+
+                        StudentProfileScreen {
+
+                            subViewStack.removeAt(
+                                subViewStack.lastIndex
+                            )
+                        }
+                    }
 
                     /*
                      * =========================
@@ -302,6 +317,15 @@ fun MainApp() {
                      *
                      * Still supported internally.
                      */
+                    is SubView.Settings -> {
+
+                        SettingsTabScreen {
+
+                            subViewStack.removeAt(
+                                subViewStack.lastIndex
+                            )
+                        }
+                    }
 
                     else -> Unit
                 }

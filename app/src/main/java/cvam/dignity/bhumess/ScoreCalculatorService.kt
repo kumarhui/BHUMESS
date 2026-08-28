@@ -1,7 +1,7 @@
-package cvam.dignity.bhumess.api
+﻿package cvam.dignity.bhumess
 
 import android.content.Context
-import cvam.dignity.bhumess.models.*
+import cvam.dignity.bhumess.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
@@ -116,3 +116,4 @@ class ScoreCalculatorService(private val context: Context) {
         return list
     }
 }
+

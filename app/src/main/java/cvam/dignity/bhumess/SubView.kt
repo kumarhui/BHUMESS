@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.navigation
+﻿package cvam.dignity.bhumess
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.LibraryBooks
@@ -12,17 +12,11 @@ data class FolderEntry(
 
 sealed class SubView {
 
-    // Main screens
+    // Dashboard
     object Main : SubView()
-    object Profile : SubView()
-    object Settings : SubView()
-    object History : SubView()
 
     // Score Calculator
     object ScoreCalculator : SubView()
-
-    // Student / Attendance
-    object ScanAttendance : SubView()
 
     // Academic Resources
     data class DriveExplorer(

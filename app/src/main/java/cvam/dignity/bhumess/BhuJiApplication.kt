@@ -1,10 +1,10 @@
-package cvam.dignity.bhumess
+﻿package cvam.dignity.bhumess
 
 import android.app.Application
 import android.content.pm.ApplicationInfo
 import com.google.android.gms.ads.MobileAds
 import com.google.android.gms.ads.RequestConfiguration
-import cvam.dignity.bhumess.ads.AdConfig
+import cvam.dignity.bhumess.AdConfig
 
 class BhuJiApplication : Application() {
 

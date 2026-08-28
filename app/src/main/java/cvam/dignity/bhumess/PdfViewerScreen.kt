@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens.students
+﻿package cvam.dignity.bhumess
 
 import android.app.Activity
 import android.content.Context
@@ -75,8 +75,8 @@ import com.google.android.gms.ads.FullScreenContentCallback
 import com.google.android.gms.ads.LoadAdError
 import com.google.android.gms.ads.interstitial.InterstitialAd
 import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback
-import cvam.dignity.bhumess.ads.AdConfig
-import cvam.dignity.bhumess.utils.PdfViewerUtils
+import cvam.dignity.bhumess.AdConfig
+import cvam.dignity.bhumess.PdfViewerUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -326,7 +326,7 @@ fun PdfViewerScreen(
                     )
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
-                        text = "Opening document…",
+                        text = "Opening documentâ€¦",
                         color = PdfSecondaryText,
                         fontSize = 14.sp
                     )
@@ -598,3 +598,4 @@ private fun PdfHeader(
         )
     }
 }
+

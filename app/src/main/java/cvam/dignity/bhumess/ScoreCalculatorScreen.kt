@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens
+﻿package cvam.dignity.bhumess
 
 import android.annotation.SuppressLint
 import android.app.AlertDialog
@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import cvam.dignity.bhumess.navigation.SubView
+import cvam.dignity.bhumess.SubView
 
 /**
  * Premium Web-Based Score Calculator Screen.
@@ -231,3 +231,4 @@ fun ScoreCalculatorScreen(
         }
     }
 }
+

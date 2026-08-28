@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens.students
+﻿package cvam.dignity.bhumess
 
 import android.os.Environment
 import androidx.compose.foundation.background
@@ -20,8 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cvam.dignity.bhumess.navigation.SubView
-import cvam.dignity.bhumess.utils.FileUtils
+import cvam.dignity.bhumess.SubView
+import cvam.dignity.bhumess.FileUtils
 import java.io.File
 
 /**
@@ -153,7 +153,7 @@ fun DownloadedFileRow(file: File, onClick: () -> Unit, onDelete: () -> Unit) {
             Spacer(Modifier.width(16.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(file.name, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                Text("${(file.length() / 1024)} KB • PDF", fontSize = 11.sp, color = Color.Gray)
+                Text("${(file.length() / 1024)} KB â€¢ PDF", fontSize = 11.sp, color = Color.Gray)
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Rounded.Delete, null, tint = Color.LightGray.copy(0.6f), modifier = Modifier.size(20.dp))
@@ -161,3 +161,4 @@ fun DownloadedFileRow(file: File, onClick: () -> Unit, onDelete: () -> Unit) {
         }
     }
 }
+

@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens
+﻿package cvam.dignity.bhumess
 
 import android.annotation.SuppressLint
 import android.net.Uri

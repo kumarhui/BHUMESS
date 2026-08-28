@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.ads
+﻿package cvam.dignity.bhumess
 
 object AdConfig {
 

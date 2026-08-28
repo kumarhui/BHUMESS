@@ -1,4 +1,4 @@
-package cvam.dignity.bhumess.screens.students
+﻿package cvam.dignity.bhumess
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -30,7 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cvam.dignity.bhumess.navigation.SubView
+import cvam.dignity.bhumess.SubView
 
 @Composable
 fun StudyResourcesScreen(
@@ -192,3 +192,4 @@ private fun CircularTool(
         )
     }
 }
+
