@@ -5,6 +5,11 @@ import androidx.compose.material.icons.automirrored.rounded.LibraryBooks
 import androidx.compose.material.icons.rounded.Calculate
 import androidx.compose.ui.graphics.vector.ImageVector
 
+data class FolderEntry(
+    val id: String,
+    val name: String
+)
+
 sealed class SubView {
 
     // Main screens

@@ -41,6 +41,7 @@ import com.google.android.gms.ads.AdRequest
 import com.google.android.gms.ads.AdSize
 import com.google.android.gms.ads.AdView
 import com.google.android.gms.ads.LoadAdError
+import cvam.dignity.bhumess.navigation.FolderEntry
 
 /*
  * Convert Google Drive file size in bytes
@@ -183,28 +184,27 @@ private fun AdMobBanner(
 fun DriveExplorerScreen(
     initialFolderId: String,
     initialFolderName: String,
+    initialFolderStack: List<FolderEntry>,
     onExitExplorer: () -> Unit,
     onOpenDownloads: () -> Unit,
+    onFolderStackChanged: (List<FolderEntry>) -> Unit,
     onNavigate: (SubView) -> Unit
 ) {
 
     val context = LocalContext.current
 
-    data class FolderEntry(
-        val id: String,
-        val name: String
-    )
-
+    /*
+     * The hierarchy is owned by MainActivity so it survives while
+     * PDF Viewer / Downloads is shown above the explorer.
+     */
     val folderStack = remember(
         initialFolderId,
-        initialFolderName
+        initialFolderName,
+        initialFolderStack
     ) {
-        mutableStateListOf(
-            FolderEntry(
-                id = initialFolderId,
-                name = initialFolderName
-            )
-        )
+        mutableStateListOf<FolderEntry>().apply {
+            addAll(initialFolderStack)
+        }
     }
 
     var isGoingBack by remember {
@@ -236,6 +236,10 @@ fun DriveExplorerScreen(
 
             folderStack.removeAt(
                 folderStack.lastIndex
+            )
+
+            onFolderStackChanged(
+                folderStack.toList()
             )
 
         } else {
@@ -404,6 +408,10 @@ fun DriveExplorerScreen(
                                     folderStack.lastIndex
                                 )
 
+                                onFolderStackChanged(
+                                    folderStack.toList()
+                                )
+
                             } else {
 
                                 onExitExplorer()
@@ -503,6 +511,10 @@ fun DriveExplorerScreen(
                                 id = id,
                                 name = name
                             )
+                        )
+
+                        onFolderStackChanged(
+                            folderStack.toList()
                         )
                     },
 
@@ -728,11 +740,24 @@ fun FolderContent(
                         file.name
                     )
 
-                val isDownloaded =
-                    localFile.exists()
+                var isDownloaded by remember(file.id) {
+                    mutableStateOf(
+                        localFile.exists()
+                    )
+                }
 
                 val progress =
                     downloadingFiles[file.name]
+
+                /*
+                 * DownloadManager completion removes the progress entry.
+                 * Re-check the actual file so the UI changes to Download.
+                 */
+                LaunchedEffect(progress) {
+                    if (progress == null) {
+                        isDownloaded = localFile.exists()
+                    }
+                }
 
 
                 FileRow(
@@ -764,6 +789,12 @@ fun FolderContent(
 
                         if (isDownloaded) {
                             deleteLocalFile(localFile)
+
+                            /*
+                             * Always synchronize the UI with the
+                             * actual filesystem state.
+                             */
+                            isDownloaded = localFile.exists()
                         }
                     },
 
@@ -1045,12 +1076,16 @@ fun FileRow(
                     }
 
                     else -> {
-                        Icon(
-                            Icons.Rounded.CloudDownload,
-                            contentDescription = "Download",
-                            tint = Color.LightGray,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        IconButton(
+                            onClick = onClick
+                        ) {
+                            Icon(
+                                Icons.Rounded.CloudDownload,
+                                contentDescription = "Download",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
                     }
                 }
             }
