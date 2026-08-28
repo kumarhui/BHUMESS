@@ -141,55 +141,37 @@ private fun CircularTool(
     onClick: () -> Unit
 ) {
     Column(
+        modifier = Modifier.width(96.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Box(
+        androidx.compose.material3.IconButton(
+            onClick = onClick,
             modifier = Modifier
-                .size(108.dp)
+                .size(72.dp)
                 .shadow(
-                    elevation = 8.dp,
+                    elevation = 4.dp,
                     shape = CircleShape
                 )
                 .background(
-                    color = color.copy(alpha = 0.12f),
+                    color = color,
                     shape = CircleShape
                 )
-                .then(
-                    Modifier
-                ),
-            contentAlignment = Alignment.Center
         ) {
-            androidx.compose.material3.IconButton(
-                onClick = onClick,
-                modifier = Modifier.size(108.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(76.dp)
-                        .background(
-                            color = color,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = Color.White,
-                        modifier = Modifier.size(34.dp)
-                    )
-                }
-            }
+            Icon(
+                imageVector = icon,
+                contentDescription = title,
+                tint = Color.White,
+                modifier = Modifier.size(28.dp)
+            )
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         Text(
             text = title,
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Bold
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
         )
     }
 }
-
