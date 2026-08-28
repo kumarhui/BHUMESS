@@ -4,13 +4,11 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
-    id("com.google.gms.google-services")
 }
 
 android {
     namespace = "cvam.dignity.bhumess"
 
-    // Android API 36
     compileSdk = 36
 
     // Required by AndroidX PDF alpha18
@@ -19,18 +17,16 @@ android {
     defaultConfig {
         applicationId = "cvam.dignity.bhumess"
 
-        // AndroKidX PDF alpha18 supports minSdk 28
         minSdk = 28
-
         targetSdk = 35
 
-        versionCode = 39
-        versionName = "1.1.1.39"
+        versionCode = 40
+        versionName = "1.1.1.40"
 
         testInstrumentationRunner =
             "androidx.test.runner.AndroidJUnitRunner"
 
-        // NDK r28+ provides proper 16 KB support
+        // NDK r28+ for 16 KB page-size support
         ndkVersion = "28.0.12433566"
 
         externalNativeBuild {
@@ -67,7 +63,6 @@ android {
 
     packaging {
         jniLibs {
-            // Important for 16 KB page-size support
             useLegacyPackaging = false
         }
 
@@ -95,7 +90,7 @@ tasks.withType<
 dependencies {
 
     // =========================================================
-    // Core Compose & Lifecycle
+    // Core Android
     // =========================================================
 
     implementation(libs.androidx.core.ktx)
@@ -111,6 +106,11 @@ dependencies {
     implementation(
         libs.androidx.activity.compose
     )
+
+
+    // =========================================================
+    // Jetpack Compose
+    // =========================================================
 
     implementation(
         platform(libs.androidx.compose.bom)
@@ -128,40 +128,13 @@ dependencies {
         libs.androidx.compose.foundation
     )
 
-
-    // =========================================================
-    // UI & Icons
-    // =========================================================
-
     implementation(
         "androidx.compose.material:material-icons-extended"
     )
 
 
     // =========================================================
-    // Firebase
-    // =========================================================
-
-    implementation(
-        platform("com.google.firebase:firebase-bom:33.10.0")
-    )
-
-    implementation(
-        "com.google.firebase:firebase-auth-ktx"
-    )
-
-    implementation(
-        "com.google.firebase:firebase-firestore-ktx"
-    )
-
-    implementation(
-        "com.google.firebase:firebase-database-ktx"
-    )
-
-
-    // =========================================================
     // PDF VIEWER
-    // AndroidX PDF - 16 KB friendly replacement
     // =========================================================
 
     implementation(
@@ -175,6 +148,19 @@ dependencies {
 
     implementation(
         "com.google.android.gms:play-services-ads:25.4.0"
+    )
+
+
+    // =========================================================
+    // Google Play In-App Updates
+    // =========================================================
+
+    implementation(
+        "com.google.android.play:app-update:2.1.0"
+    )
+
+    implementation(
+        "com.google.android.play:app-update-ktx:2.1.0"
     )
 
 
@@ -199,7 +185,10 @@ dependencies {
         "com.itextpdf:itextg:5.5.10"
     )
 
-    implementation("io.github.grizzi91:bouquet:1.1.2")
+    implementation(
+        "io.github.grizzi91:bouquet:1.1.2"
+    )
+
 
     // =========================================================
     // Google Drive API

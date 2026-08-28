@@ -1,0 +1,2406 @@
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\MainActivity.kt
+============================================================
+
+package cvam.dignity.bhumess
+
+import cvam.dignity.bhumess.drive.DriveExplorer
+
+import android.os.Bundle
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.fragment.app.FragmentActivity
+
+import cvam.dignity.bhumess.navigation.AppDestination
+import cvam.dignity.bhumess.pdfViewer.PdfViewerScreen
+import cvam.dignity.bhumess.ui.theme.BHUMESSTheme
+
+class MainActivity : FragmentActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        enableEdgeToEdge()
+
+        setContent {
+            BHUMESSTheme {
+                MainApp()
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainApp() {
+
+    val AppDestinationStack = remember {
+        mutableStateListOf<AppDestination>(AppDestination.Main)
+    }
+
+    /*
+     * Drive Explorer's folder hierarchy must live above
+     * DriveExplorer so that navigation inside the
+     * explorer survives when another screen is opened.
+     */
+    val currentAppDestination by remember {
+        derivedStateOf {
+            AppDestinationStack.lastOrNull() ?: AppDestination.Main
+        }
+    }
+
+    /*
+     * System back navigation.
+     *
+     * Drive Explorer handles its own internal navigation.
+     * Other screens simply pop the current destination.
+     */
+    BackHandler(
+        enabled = AppDestinationStack.size > 1 &&
+                currentAppDestination !is AppDestination.DriveExplorer
+    ) {
+        AppDestinationStack.removeAt(AppDestinationStack.lastIndex)
+    }
+
+    Scaffold(
+        topBar = {
+
+            /*
+             * Main dashboard gets a simple clean top bar.
+             *
+             * App drawer / hamburger button removed.
+             * Downloads shortcut removed.
+             */
+            if (currentAppDestination == AppDestination.Main) {
+
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = "BHUMESS",
+                            fontWeight = FontWeight.Black
+                        )
+                    }
+                )
+            }
+        }
+    ) { innerPadding ->
+
+        /*
+         * Main dashboard uses the Scaffold padding.
+         *
+         * Other screens retain their own top-bar/layout behavior.
+         */
+        val contentModifier =
+            if (currentAppDestination == AppDestination.Main) {
+                Modifier.padding(innerPadding)
+            } else {
+                Modifier.padding(
+                    top = 0.dp
+                )
+            }
+
+        Box(
+            modifier = contentModifier
+                .fillMaxSize()
+                .background(
+                    androidx.compose.material3.MaterialTheme
+                        .colorScheme
+                        .background
+                )
+        ) {
+
+            AnimatedContent(
+                targetState = currentAppDestination,
+                label = "Transition"
+            ) { view ->
+
+                when (view) {
+
+                    // =========================================================
+                    // DASHBOARD
+                    // =========================================================
+
+                    is AppDestination.Main -> {
+
+                        DashboardScreen(
+                            onNavigate = { target ->
+                                AppDestinationStack.add(target)
+                            }
+                        )
+                    }
+
+
+                    // =========================================================
+                    // SCORE CALCULATOR
+                    // =========================================================
+
+                    is AppDestination.ScoreCalculator -> {
+
+                        ScoreCalculatorScreen(
+                            onBack = {
+                                if (AppDestinationStack.size > 1) {
+                                    AppDestinationStack.removeAt(
+                                        AppDestinationStack.lastIndex
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+
+                    // =========================================================
+                    // DOWNLOADS
+                    // =========================================================
+
+                    is AppDestination.DownloadedFiles -> {
+
+                        DownloadedFilesScreen(
+                            onBack = {
+                                if (AppDestinationStack.size > 1) {
+                                    AppDestinationStack.removeAt(
+                                        AppDestinationStack.lastIndex
+                                    )
+                                }
+                            },
+
+                            onViewFile = { destination ->
+                                AppDestinationStack.add(destination)
+                            }
+                        )
+                    }
+
+
+                    // =========================================================
+                    // SHARED DRIVE EXPLORER
+                    // =========================================================
+
+                    is AppDestination.DriveExplorer -> {
+
+                        DriveExplorer(
+                            initialFolderId = view.folderId,
+                            initialFolderName = view.title,
+
+                            onBack = {
+                                if (AppDestinationStack.size > 1) {
+                                    AppDestinationStack.removeAt(
+                                        AppDestinationStack.lastIndex
+                                    )
+                                }
+                            },
+
+                            onOpenDownloads = {
+                                AppDestinationStack.add(
+                                    AppDestination.DownloadedFiles
+                                )
+                            },
+
+                            onOpenPdf = { uri, title ->
+
+                                AppDestinationStack.add(
+                                    AppDestination.PdfViewer(
+                                        uri = uri,
+                                        title = title
+                                    )
+                                )
+                            }
+                        )
+                    }
+
+                    // =========================================================
+                    // HTML / SYLLABUS VIEWER
+                    // =========================================================
+
+                    is AppDestination.HtmlViewer -> {
+
+                        BhuHtmlViewerScreen(
+                            view.url,
+                            view.title
+                        ) {
+
+                            if (AppDestinationStack.size > 1) {
+                                AppDestinationStack.removeAt(
+                                    AppDestinationStack.lastIndex
+                                )
+                            }
+                        }
+                    }
+
+
+                    // =========================================================
+                    // PDF VIEWER
+                    // =========================================================
+
+                    is AppDestination.PdfViewer -> {
+
+                        PdfViewerScreen(
+                            uri = view.uri,
+                            title = view.title,
+                            onBack = {
+
+                                if (AppDestinationStack.size > 1) {
+                                    AppDestinationStack.removeAt(
+                                        AppDestinationStack.lastIndex
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+
+                    else -> Unit
+                }            }
+        }
+    }
+}
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\navigation\AppNavigation.kt
+============================================================
+
+package cvam.dignity.bhumess.navigation
+
+/**
+ * Central navigation destinations for BHUMESS.
+ *
+ * Keep these names synchronized with MainActivity.
+ */
+sealed class AppDestination {
+
+    /**
+     * Main dashboard containing the four tools.
+     */
+    data object Main : AppDestination()
+
+    /**
+     * Shared Google Drive explorer.
+     *
+     * Used by Notes and PYQs.
+     */
+    data class DriveExplorer(
+        val folderId: String,
+        val title: String
+    ) : AppDestination()
+
+    /**
+     * Offline downloaded PDFs.
+     */
+    data object DownloadedFiles : AppDestination()
+
+    /**
+     * Web/HTML viewer.
+     */
+    data class HtmlViewer(
+        val url: String,
+        val title: String
+    ) : AppDestination()
+
+    /**
+     * Local PDF viewer.
+     *
+     * uri should normally be a content:// URI generated
+     * through FileProvider.
+     */
+    data class PdfViewer(
+        val uri: String,
+        val title: String
+    ) : AppDestination()
+
+    /**
+     * Score calculator.
+     */
+    data object ScoreCalculator : AppDestination()
+}
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\drive\DriveExplorer.kt
+============================================================
+
+package cvam.dignity.bhumess.drive
+
+import android.app.DownloadManager
+import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.os.Environment
+import android.util.Log
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.google.android.gms.ads.AdListener
+
+
+
+
+import cvam.dignity.bhumess.AdConfig
+import cvam.dignity.bhumess.NetworkUtils
+import kotlinx.coroutines.delay
+import java.io.File
+import com.google.android.gms.ads.AdRequest
+import com.google.android.gms.ads.AdSize
+import com.google.android.gms.ads.AdView
+import com.google.android.gms.ads.LoadAdError
+
+
+/*
+ * Convert Google Drive file size in bytes
+ * into a human-readable format.
+ *
+ * Examples:
+ * 1024        -> 1 KB
+ * 1048576     -> 1.0 MB
+ * 5242880     -> 5.0 MB
+ * 1073741824  -> 1.0 GB
+ */
+
+private fun cancelDownload(
+    context: Context,
+    fileName: String
+) {
+    val dm = context.getSystemService(
+        Context.DOWNLOAD_SERVICE
+    ) as DownloadManager
+
+    val query = DownloadManager.Query()
+    val cursor = dm.query(query)
+
+    try {
+        if (cursor.moveToFirst()) {
+            do {
+                val titleIndex =
+                    cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)
+
+                val idIndex =
+                    cursor.getColumnIndex(DownloadManager.COLUMN_ID)
+
+                if (titleIndex >= 0 && idIndex >= 0) {
+                    val title = cursor.getString(titleIndex)
+
+                    if (title == fileName) {
+                        val downloadId = cursor.getLong(idIndex)
+                        dm.remove(downloadId)
+                    }
+                }
+            } while (cursor.moveToNext())
+        }
+    } finally {
+        cursor.close()
+    }
+}
+
+private fun deleteLocalFile(
+    file: File
+): Boolean {
+    return try {
+        !file.exists() || file.delete()
+    } catch (e: Exception) {
+        Log.e(
+            "DriveExplorer",
+            "Failed to delete ${file.absolutePath}",
+            e
+        )
+        false
+    }
+}
+
+private fun formatFileSize(bytes: Long?): String {
+
+    if (bytes == null || bytes <= 0L) {
+        return "Size unknown"
+    }
+
+    val kb = 1024.0
+    val mb = kb * 1024.0
+    val gb = mb * 1024.0
+
+    return when {
+
+        bytes >= gb ->
+            String.format("%.1f GB", bytes / gb)
+
+        bytes >= mb ->
+            String.format("%.1f MB", bytes / mb)
+
+        bytes >= kb ->
+            String.format("%.0f KB", bytes / kb)
+
+        else ->
+            "$bytes B"
+    }
+}
+
+
+@Composable
+private fun AdMobBanner(
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+
+    val adView = remember {
+        AdView(context).apply {
+            adUnitId = AdConfig.BANNER_AD_UNIT_ID
+            setAdSize(AdSize.BANNER)
+
+            adListener = object : AdListener() {
+                override fun onAdLoaded() {
+                    Log.d("Ads", "Banner loaded")
+                }
+
+                override fun onAdFailedToLoad(error: LoadAdError) {
+                    Log.e(
+                        "Ads",
+                        "Banner failed: code=${error.code}, " +
+                                "message=${error.message}, " +
+                                "domain=${error.domain}"
+                    )
+                }
+            }
+        }
+    }
+
+    DisposableEffect(adView) {
+        adView.loadAd(
+            AdRequest.Builder().build()
+        )
+
+        onDispose {
+            adView.destroy()
+        }
+    }
+
+    AndroidView(
+        factory = { adView },
+        modifier = modifier,
+        update = { view ->
+            view.visibility = android.view.View.VISIBLE
+        }
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DriveExplorer(
+    initialFolderId: String,
+    initialFolderName: String,
+    initialFolderStack: List<FolderEntry>,
+    onExitExplorer: () -> Unit,
+    onOpenDownloads: () -> Unit,
+    onFolderStackChanged: (List<FolderEntry>) -> Unit,
+    onNavigate: (AppDestination) -> Unit
+) {
+
+    val context = LocalContext.current
+
+    /*
+     * The hierarchy is owned by MainActivity so it survives while
+     * PDF Viewer / Downloads is shown above the explorer.
+     */
+    val folderStack = remember(
+        initialFolderId,
+        initialFolderName,
+        initialFolderStack
+    ) {
+        mutableStateListOf<FolderEntry>().apply {
+            addAll(initialFolderStack)
+        }
+    }
+
+    var isGoingBack by remember {
+        mutableStateOf(false)
+    }
+
+    /*
+     * File name -> download progress
+     * 0f to 1f
+     */
+    val downloadingFiles = remember {
+        mutableStateMapOf<String, Float>()
+    }
+
+    val dm = remember {
+        context.getSystemService(
+            Context.DOWNLOAD_SERVICE
+        ) as DownloadManager
+    }
+
+    /*
+     * Android back button.
+     */
+    BackHandler {
+
+        if (folderStack.size > 1) {
+
+            isGoingBack = true
+
+            folderStack.removeAt(
+                folderStack.lastIndex
+            )
+
+            onFolderStackChanged(
+                folderStack.toList()
+            )
+
+        } else {
+
+            onExitExplorer()
+        }
+    }
+    /*
+     * Poll DownloadManager every second.
+     *
+     * Updates:
+     * - download progress
+     * - downloaded state
+     */
+    LaunchedEffect(downloadingFiles.size) {
+
+        while (downloadingFiles.isNotEmpty()) {
+
+            delay(1000)
+
+            val iterator =
+                downloadingFiles.entries.iterator()
+
+            while (iterator.hasNext()) {
+
+                val entry = iterator.next()
+
+                val fileName = entry.key
+
+                val query =
+                    DownloadManager.Query()
+                        .setFilterByStatus(
+                            DownloadManager.STATUS_RUNNING or
+                                    DownloadManager.STATUS_PENDING or
+                                    DownloadManager.STATUS_SUCCESSFUL
+                        )
+
+                val cursor: Cursor =
+                    dm.query(query)
+
+                var foundDownload = false
+
+                try {
+
+                    if (cursor.moveToFirst()) {
+
+                        do {
+
+                            val title =
+                                cursor.getString(
+                                    cursor.getColumnIndexOrThrow(
+                                        DownloadManager.COLUMN_TITLE
+                                    )
+                                )
+
+                            if (title == fileName) {
+
+                                foundDownload = true
+
+                                val status =
+                                    cursor.getInt(
+                                        cursor.getColumnIndexOrThrow(
+                                            DownloadManager.COLUMN_STATUS
+                                        )
+                                    )
+
+                                when (status) {
+
+                                    DownloadManager.STATUS_SUCCESSFUL -> {
+
+                                        /*
+                                         * Download completed.
+                                         */
+                                        iterator.remove()
+                                    }
+
+                                    DownloadManager.STATUS_RUNNING,
+                                    DownloadManager.STATUS_PENDING -> {
+
+                                        val bytesDownloaded =
+                                            cursor.getLong(
+                                                cursor.getColumnIndexOrThrow(
+                                                    DownloadManager.COLUMN_BYTES_DOWNLOADED_SO_FAR
+                                                )
+                                            )
+
+                                        val bytesTotal =
+                                            cursor.getLong(
+                                                cursor.getColumnIndexOrThrow(
+                                                    DownloadManager.COLUMN_TOTAL_SIZE_BYTES
+                                                )
+                                            )
+
+                                        if (bytesTotal > 0) {
+
+                                            downloadingFiles[fileName] =
+                                                bytesDownloaded.toFloat() /
+                                                        bytesTotal.toFloat()
+
+                                        } else {
+
+                                            downloadingFiles[fileName] =
+                                                0f
+                                        }
+                                    }
+                                }
+                            }
+
+                        } while (cursor.moveToNext())
+                    }
+
+                } finally {
+
+                    cursor.close()
+                }
+
+                /*
+                 * DownloadManager no longer has
+                 * this download.
+                 */
+                if (
+                    !foundDownload &&
+                    downloadingFiles.containsKey(fileName)
+                ) {
+
+                    try {
+
+                        iterator.remove()
+
+                    } catch (_: Exception) {
+
+                        downloadingFiles.remove(fileName)
+                    }
+                }
+            }
+        }
+    }
+
+
+    Scaffold(
+
+        topBar = {
+
+            CenterAlignedTopAppBar(
+
+                title = {
+                    Text(
+                        text = folderStack.last().name,
+                        fontWeight = FontWeight.Black,
+                        fontSize = 18.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+
+                navigationIcon = {
+
+                    IconButton(
+
+                        onClick = {
+                            if (folderStack.size > 1) {
+
+                                isGoingBack = true
+
+                                folderStack.removeAt(
+                                    folderStack.lastIndex
+                                )
+
+                                onFolderStackChanged(
+                                    folderStack.toList()
+                                )
+
+                            } else {
+
+                                onExitExplorer()
+                            }
+                        }                ) {
+
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+
+                actions = {
+
+                    IconButton(
+                        onClick = onOpenDownloads
+                    ) {
+
+                        Icon(
+                            Icons.Rounded.CloudDone,
+                            contentDescription = "Downloads",
+                            tint = MaterialTheme
+                                .colorScheme
+                                .primary
+                        )
+                    }
+                },
+
+                colors =
+                    TopAppBarDefaults
+                        .centerAlignedTopAppBarColors(
+                            containerColor =
+                                Color.Transparent
+                        )
+            )
+        },
+
+        bottomBar = {
+
+            AdMobBanner(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentHeight()
+            )
+        }
+
+    ) { p ->
+
+        Box(
+
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    Color(0xFFF8FAFC)
+                )
+                .padding(p)
+        ) {
+
+            AnimatedContent(
+                targetState = folderStack.last().id,
+
+                transitionSpec = {
+
+                    if (isGoingBack) {
+
+                        (
+                                slideInHorizontally { -it } + fadeIn()
+                                ) togetherWith (
+                                slideOutHorizontally { it } + fadeOut()
+                                )
+
+                    } else {
+
+                        (
+                                slideInHorizontally { it } + fadeIn()
+                                ) togetherWith (
+                                slideOutHorizontally { -it } + fadeOut()
+                                )
+                    }
+                },
+
+                label = "ExplorerContent"
+
+            ) { currentId ->
+
+                FolderContent(
+
+                    folderId = currentId,
+
+                    onFolderClick = { id, name ->
+
+                        isGoingBack = false
+
+                        folderStack.add(
+                            FolderEntry(
+                                id = id,
+                                name = name
+                            )
+                        )
+
+                        onFolderStackChanged(
+                            folderStack.toList()
+                        )
+                    },
+
+                    downloadingFiles =
+                        downloadingFiles,
+
+                    onNavigate =
+                        onNavigate
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun FolderContent(
+    folderId: String,
+    onFolderClick: (String, String) -> Unit,
+    downloadingFiles: Map<String, Float>,
+    onNavigate: (AppDestination) -> Unit
+) {
+
+    val context = LocalContext.current
+
+    val driveService =
+        remember {
+            DriveService(context)
+        }
+
+    val dm =
+        remember {
+            context.getSystemService(
+                Context.DOWNLOAD_SERVICE
+            ) as DownloadManager
+        }
+
+    var files by remember {
+
+        mutableStateOf<List<DriveFile>>(
+            emptyList()
+        )
+    }
+
+    var isLoading by remember {
+        mutableStateOf(true)
+    }
+
+
+    /*
+     * Load folder.
+     *
+     * First show cache.
+     * Then fetch fresh Drive data.
+     */
+    LaunchedEffect(folderId) {
+
+        isLoading = true
+
+        val cached =
+            DriveCache.getFolderCache(
+                context,
+                folderId
+            )
+
+        if (cached != null) {
+
+            files = cached
+            isLoading = false
+        }
+
+        if (
+            NetworkUtils
+                .isInternetAvailable(context)
+        ) {
+
+            try {
+
+                val fresh =
+                    driveService
+                        .fetchFilesFromFolder(
+                            folderId
+                        )
+
+                files = fresh
+
+                DriveCache
+                    .saveFolderCache(
+                        context,
+                        folderId,
+                        fresh
+                    )
+
+            } catch (_: Exception) {
+
+                /*
+                 * Keep cached files if
+                 * fresh fetch fails.
+                 */
+
+            } finally {
+
+                isLoading = false
+            }
+
+        } else if (files.isEmpty()) {
+
+            isLoading = false
+        }
+    }
+
+
+    /*
+     * Loading state.
+     */
+    if (
+        isLoading &&
+        files.isEmpty()
+    ) {
+
+        Box(
+            Modifier.fillMaxSize(),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Column(
+                horizontalAlignment =
+                    Alignment.CenterHorizontally
+            ) {
+
+                CircularProgressIndicator(
+                    color =
+                        MaterialTheme
+                            .colorScheme
+                            .primary,
+                    strokeWidth = 3.dp
+                )
+
+                Spacer(
+                    Modifier.height(16.dp)
+                )
+
+                Text(
+                    "Fetching items...",
+                    fontSize = 12.sp,
+                    color = Color.Gray
+                )
+            }
+        }
+
+    }
+
+    /*
+     * Empty folder.
+     */
+    else if (files.isEmpty()) {
+
+        Box(
+            Modifier.fillMaxSize(),
+            contentAlignment =
+                Alignment.Center
+        ) {
+
+            Text(
+                "This folder is empty",
+                color = Color.Gray
+            )
+        }
+
+    }
+
+    /*
+     * File / folder list.
+     */
+    else {
+
+        LazyColumn(
+
+            contentPadding =
+                PaddingValues(16.dp),
+
+            verticalArrangement =
+                Arrangement.spacedBy(10.dp)
+
+        ) {
+
+            items(
+                files,
+                key = { it.id }
+            ) { file ->
+
+                val isFolder =
+                    file.mimeType
+                        .contains("apps.folder")
+
+
+                /*
+                 * Download folder:
+                 *
+                 * Download/
+                 *   BHU Ji/
+                 *     AcademicResources/
+                 */
+                val downloadFolder =
+                    File(
+                        Environment
+                            .getExternalStoragePublicDirectory(
+                                Environment
+                                    .DIRECTORY_DOWNLOADS
+                            ),
+                        "BHU Ji/AcademicResources"
+                    )
+
+                if (!downloadFolder.exists()) {
+                    downloadFolder.mkdirs()
+                }
+
+
+                val localFile =
+                    File(
+                        downloadFolder,
+                        file.name
+                    )
+
+                var isDownloaded by remember(file.id) {
+                    mutableStateOf(
+                        localFile.exists()
+                    )
+                }
+
+                val progress =
+                    downloadingFiles[file.name]
+
+                /*
+                 * DownloadManager completion removes the progress entry.
+                 * Re-check the actual file so the UI changes to Download.
+                 */
+                LaunchedEffect(progress) {
+                    if (progress == null) {
+                        isDownloaded = localFile.exists()
+                    }
+                }
+
+
+                FileRow(
+
+                    file = file,
+
+                    isFolder = isFolder,
+
+                    isDownloaded =
+                        isDownloaded,
+
+                    downloadProgress =
+                        progress,
+
+                    onDelete = {
+                        if (progress != null) {
+                            cancelDownload(
+                                context,
+                                file.name
+                            )
+
+                            if (downloadingFiles is MutableMap) {
+                                @Suppress("UNCHECKED_CAST")
+                                (
+                                        downloadingFiles as MutableMap<String, Float>
+                                        ).remove(file.name)
+                            }
+                        }
+
+                        if (isDownloaded) {
+                            deleteLocalFile(localFile)
+
+                            /*
+                             * Always synchronize the UI with the
+                             * actual filesystem state.
+                             */
+                            isDownloaded = localFile.exists()
+                        }
+                    },
+
+                    onClick = {
+
+                        /*
+                         * Folder.
+                         */
+                        if (isFolder) {
+
+                            onFolderClick(
+                                file.id,
+                                file.name
+                            )
+
+                        } else {
+
+                            /*
+                             * Already downloaded.
+                             */
+                            if (isDownloaded) {
+
+                                onNavigate(
+                                    AppDestination.PdfViewer(
+                                        localFile.absolutePath,
+                                        file.name
+                                    )
+                                )
+
+                            }
+
+                            /*
+                             * Start download.
+                             */
+                            else if (progress == null) {
+
+                                file.webContentLink
+                                    ?.let { link ->
+
+                                        /*
+                                         * Immediately show
+                                         * progress.
+                                         */
+                                        if (
+                                            downloadingFiles
+                                                    is MutableMap
+                                        ) {
+
+                                            @Suppress(
+                                                "UNCHECKED_CAST"
+                                            )
+
+                                            (
+                                                    downloadingFiles
+                                                            as MutableMap<
+                                                            String,
+                                                            Float
+                                                            >
+                                                    )[file.name] = 0f
+                                        }
+
+
+                                        val request =
+                                            DownloadManager
+                                                .Request(
+                                                    Uri.parse(
+                                                        link
+                                                    )
+                                                )
+                                                .setTitle(
+                                                    file.name
+                                                )
+                                                .setDescription(
+                                                    "Downloading ${file.name}"
+                                                )
+                                                .setNotificationVisibility(
+                                                    DownloadManager
+                                                        .Request
+                                                        .VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+                                                )
+                                                .setDestinationInExternalPublicDir(
+                                                    Environment
+                                                        .DIRECTORY_DOWNLOADS,
+                                                    "BHU Ji/AcademicResources/${file.name}"
+                                                )
+
+                                        dm.enqueue(request)
+                                    }
+                            }
+                        }
+                    }
+                )
+            }
+        }
+    }
+}
+
+
+@Composable
+fun FileRow(
+    file: DriveFile,
+    isFolder: Boolean,
+    isDownloaded: Boolean,
+    downloadProgress: Float?,
+    onDelete: () -> Unit,
+    onClick: () -> Unit
+) {
+    var showDeleteConfirmation by remember {
+        mutableStateOf(false)
+    }
+
+    val progress =
+        (downloadProgress ?: 0f)
+            .coerceIn(0f, 1f)
+
+    /*
+     * The progress fill is drawn from left to right behind
+     * the card contents. The card itself remains clickable.
+     */
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color.White)
+    ) {
+        if (!isFolder && downloadProgress != null) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(progress)
+                    .fillMaxHeight()
+                    .background(
+                        MaterialTheme.colorScheme.primary.copy(
+                            alpha = 0.10f
+                        )
+                    )
+            )
+        }
+
+        Surface(
+            onClick = onClick,
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            color = Color.Transparent,
+            shadowElevation = 0.dp
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                /*
+                 * File / folder icon.
+                 */
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isFolder) {
+                                Color(0xFFF59E0B).copy(0.1f)
+                            } else {
+                                Color(0xFF3B82F6).copy(0.1f)
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector =
+                            if (isFolder) {
+                                Icons.Rounded.Folder
+                            } else {
+                                Icons.Rounded.Description
+                            },
+                        contentDescription = null,
+                        tint =
+                            if (isFolder) {
+                                Color(0xFFF59E0B)
+                            } else {
+                                Color(0xFF3B82F6)
+                            },
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+
+                Spacer(
+                    Modifier.width(16.dp)
+                )
+
+                /*
+                 * Filename + file size.
+                 */
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = file.name,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Text(
+                        text =
+                            if (isFolder) {
+                                "Folder"
+                            } else {
+                                if (downloadProgress != null) {
+                                    "Downloading • ${(progress * 100).toInt()}%"
+                                } else {
+                                    "PDF • ${
+                                        formatFileSize(
+                                            file.sizeBytes
+                                        )
+                                    }"
+                                }
+                            },
+                        fontSize = 11.sp,
+                        color =
+                            if (downloadProgress != null) {
+                                MaterialTheme.colorScheme.primary
+                            } else {
+                                Color.Gray
+                            },
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                /*
+                 * Right-side action.
+                 */
+                when {
+                    isFolder -> {
+                        Icon(
+                            Icons.Rounded.ChevronRight,
+                            contentDescription = null,
+                            tint = Color.LightGray
+                        )
+                    }
+
+                    downloadProgress != null -> {
+                        /*
+                         * Delete/cancel the active download.
+                         * The confirmation dialog is shown before
+                         * DownloadManager.remove() is called.
+                         */
+                        IconButton(
+                            onClick = {
+                                showDeleteConfirmation = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Cancel download",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    isDownloaded -> {
+                        /*
+                         * Delete the downloaded local file.
+                         * Opening the PDF is still done by tapping
+                         * the card itself.
+                         */
+                        IconButton(
+                            onClick = {
+                                showDeleteConfirmation = true
+                            }
+                        ) {
+                            Icon(
+                                Icons.Rounded.Delete,
+                                contentDescription = "Delete downloaded file",
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+
+                    else -> {
+                        IconButton(
+                            onClick = onClick
+                        ) {
+                            Icon(
+                                Icons.Rounded.CloudDownload,
+                                contentDescription = "Download",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /*
+     * Delete confirmation.
+     */
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteConfirmation = false
+            },
+            icon = {
+                Icon(
+                    Icons.Rounded.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error
+                )
+            },
+            title = {
+                Text(
+                    if (downloadProgress != null) {
+                        "Cancel download?"
+                    } else {
+                        "Delete downloaded file?"
+                    },
+                    fontWeight = FontWeight.Bold
+                )
+            },
+            text = {
+                Text(
+                    if (downloadProgress != null) {
+                        "Do you want to cancel the download of \"${file.name}\"?"
+                    } else {
+                        "This will delete \"${file.name}\" from your device. The file will remain available in Drive."
+                    }
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDelete()
+                    }
+                ) {
+                    Text(
+                        if (downloadProgress != null) {
+                            "Cancel Download"
+                        } else {
+                            "Delete"
+                        },
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                    }
+                ) {
+                    Text("Keep")
+                }
+            }
+        )
+    }
+}
+
+
+
+
+
+
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\drive\DriveService.kt
+============================================================
+
+package cvam.dignity.bhumess.drive
+
+import android.content.Context
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport
+import com.google.api.client.json.gson.GsonFactory
+import com.google.api.services.drive.Drive
+import com.google.api.services.drive.DriveScopes
+import com.google.auth.http.HttpCredentialsAdapter
+import com.google.auth.oauth2.GoogleCredentials
+import cvam.dignity.bhumess.R
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+class DriveService(private val context: Context) {
+    private val jsonFactory = GsonFactory.getDefaultInstance()
+    private val httpTransport = GoogleNetHttpTransport.newTrustedTransport()
+
+    private fun getDriveService(): Drive {
+        // FIXED: Using Service Account instead of User OAuth for background loading
+        val inputStream = context.resources.openRawResource(R.raw.service_account_credentials)
+        val credentials = GoogleCredentials.fromStream(inputStream)
+            .createScoped(listOf(DriveScopes.DRIVE_READONLY))
+
+        return Drive.Builder(
+            httpTransport,
+            jsonFactory,
+            HttpCredentialsAdapter(credentials)
+        ).setApplicationName("BHU Ji Academic").build()
+    }
+
+    suspend fun fetchFilesFromFolder(folderId: String): List<DriveFile> = withContext(Dispatchers.IO) {
+        try {
+            val service = getDriveService()
+            val result = service.files().list()
+                .setQ("'$folderId' in parents and trashed = false")
+                .setFields("files(id, name, mimeType, size, thumbnailLink, webContentLink)")
+                .execute()
+
+            result.files?.map { file ->
+                DriveFile(
+                    id = file.id ?: "",
+                    name = file.name ?: "Unnamed",
+                    mimeType = file.mimeType ?: "",
+                    thumbnailLink = file.thumbnailLink,
+                    webContentLink = file.webContentLink
+                )
+            } ?: emptyList()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+}
+
+
+
+
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\drive\DriveCache.kt
+============================================================
+
+package cvam.dignity.bhumess.drive
+
+import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
+import cvam.dignity.bhumess.DriveFile
+import java.io.File
+import java.lang.reflect.Type
+
+object DriveCache {
+    private const val CACHE_DIR = "drive_metadata_cache"
+    private val gson = Gson()
+
+    fun saveFolderCache(context: Context, folderId: String, files: List<DriveFile>) {
+        try {
+            val directory = File(context.cacheDir, CACHE_DIR)
+            if (!directory.exists()) directory.mkdirs()
+
+            val cacheFile = File(directory, "cache_$folderId.json")
+            val json = gson.toJson(files)
+            cacheFile.writeText(json)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getFolderCache(context: Context, folderId: String): List<DriveFile>? {
+        return try {
+            val cacheFile = File(context.cacheDir, "$CACHE_DIR/cache_$folderId.json")
+            if (cacheFile.exists()) {
+                val json = cacheFile.readText()
+                val type: Type = object : TypeToken<List<DriveFile>>() {}.type
+                gson.fromJson(json, type)
+            } else null
+        } catch (e: Exception) {
+            null
+        }
+    }
+}
+
+
+
+
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\drive\DriveModels.kt
+============================================================
+
+package cvam.dignity.bhumess.drive
+
+data class DriveFile(
+    val id: String,
+    val name: String,
+    val mimeType: String,
+    val sizeBytes: Long? = null,
+    val thumbnailLink: String? = null,
+    val webContentLink: String? = null
+)
+
+data class FolderEntry(
+    val id: String,
+    val name: String
+)
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\downloads\DownloadsScreen.kt
+============================================================
+
+package cvam.dignity.bhumess
+
+import android.os.Environment
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.PictureAsPdf
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.content.FileProvider
+import java.io.File
+
+/**
+ * Offline Library / Downloaded Files
+ *
+ * Shows PDFs downloaded to:
+ * Download/BHU Ji/AcademicResources
+ *
+ * PDFs are opened through FileProvider so the PDF viewer
+ * receives a content:// URI instead of a raw filesystem path.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DownloadedFilesScreen(
+    onBack: () -> Unit,
+    onViewFile: (AppDestination.PdfViewer) -> Unit
+) {
+    val context = LocalContext.current
+
+    var downloadedFiles by remember {
+        mutableStateOf<List<File>>(emptyList())
+    }
+
+    var fileToDelete by remember {
+        mutableStateOf<File?>(null)
+    }
+
+    // Refresh files whenever this screen is entered.
+    LaunchedEffect(Unit) {
+        val folder = File(
+            Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_DOWNLOADS
+            ),
+            "BHU Ji/AcademicResources"
+        )
+
+        if (!folder.exists()) {
+            folder.mkdirs()
+        }
+
+        downloadedFiles =
+            folder.listFiles()
+                ?.filter { it.isFile }
+                ?.sortedByDescending { it.lastModified() }
+                ?: emptyList()
+    }
+
+    // Delete confirmation dialog
+    fileToDelete?.let { file ->
+
+        AlertDialog(
+            onDismissRequest = {
+                fileToDelete = null
+            },
+
+            title = {
+                Text(
+                    "Delete Resource?",
+                    fontWeight = FontWeight.Bold
+                )
+            },
+
+            text = {
+                Text(
+                    "Are you sure you want to permanently delete '${file.name}'?"
+                )
+            },
+
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        file.delete()
+
+                        downloadedFiles =
+                            downloadedFiles.filter {
+                                it.absolutePath != file.absolutePath
+                            }
+
+                        fileToDelete = null
+                    },
+
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = Color(0xFFEF4444)
+                    )
+                ) {
+                    Text(
+                        "Delete",
+                        fontWeight = FontWeight.Black
+                    )
+                }
+            },
+
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        fileToDelete = null
+                    }
+                ) {
+                    Text(
+                        "Cancel",
+                        color = Color.Gray
+                    )
+                }
+            },
+
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
+    Scaffold(
+        topBar = {
+
+            Box(
+                modifier = Modifier
+                    .background(Color.White)
+                    .statusBarsPadding()
+            ) {
+
+                CenterAlignedTopAppBar(
+
+                    title = {
+                        Text(
+                            "Offline Library",
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp
+                        )
+                    },
+
+                    navigationIcon = {
+                        IconButton(
+                            onClick = onBack
+                        ) {
+                            Icon(
+                                imageVector =
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+
+                    colors =
+                        TopAppBarDefaults.centerAlignedTopAppBarColors(
+                            containerColor = Color.Transparent
+                        )
+                )
+            }
+        },
+
+        containerColor = Color(0xFFF8FAFC)
+
+    ) { paddingValues ->
+
+        Box(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        ) {
+
+            // Empty state
+            if (downloadedFiles.isEmpty()) {
+
+                Column(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .padding(32.dp),
+
+                    horizontalAlignment =
+                        Alignment.CenterHorizontally
+                ) {
+
+                    Icon(
+                        imageVector =
+                            Icons.Rounded.PictureAsPdf,
+
+                        contentDescription = null,
+
+                        modifier = Modifier.size(64.dp),
+
+                        tint =
+                            Color.LightGray.copy(alpha = 0.5f)
+                    )
+
+                    Spacer(
+                        modifier = Modifier.height(16.dp)
+                    )
+
+                    Text(
+                        "No downloaded files found.",
+                        color = Color.Gray,
+                        fontSize = 14.sp
+                    )
+                }
+
+            } else {
+
+                LazyColumn(
+
+                    modifier = Modifier.fillMaxSize(),
+
+                    contentPadding =
+                        PaddingValues(16.dp),
+
+                    verticalArrangement =
+                        Arrangement.spacedBy(10.dp)
+
+                ) {
+
+                    items(
+                        items = downloadedFiles,
+                        key = { it.absolutePath }
+                    ) { file ->
+
+                        DownloadedFileRow(
+
+                            file = file,
+
+                            onClick = {
+
+                                // Only PDF files are opened
+                                // in the PDF viewer.
+                                if (
+                                    file.extension.equals(
+                                        "pdf",
+                                        ignoreCase = true
+                                    )
+                                ) {
+
+                                    /*
+                                     * IMPORTANT:
+                                     *
+                                     * Do NOT pass file.absolutePath.
+                                     *
+                                     * Bouquet/PdfRenderer needs a readable
+                                     * content URI.
+                                     *
+                                     * FileProvider converts:
+                                     *
+                                     * /storage/emulated/0/Download/...
+                                     *
+                                     * into:
+                                     *
+                                     * content://cvam.dignity.bhumess.provider/...
+                                     */
+                                    val pdfUri =
+                                        FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.provider",
+                                            file
+                                        )
+
+                                    // Give the PDF viewer the provider URI.
+                                    onViewFile(
+                                        AppDestination.PdfViewer(
+                                            uri = pdfUri.toString(),
+                                            title = file.name
+                                        )
+                                    )
+                                }
+                            },
+
+                            onDelete = {
+                                fileToDelete = file
+                            }
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DownloadedFileRow(
+    file: File,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
+) {
+
+    Surface(
+        onClick = onClick,
+
+        modifier = Modifier.fillMaxWidth(),
+
+        shape = RoundedCornerShape(16.dp),
+
+        color = Color.White,
+
+        shadowElevation = 0.5.dp
+    ) {
+
+        Row(
+            modifier = Modifier.padding(16.dp),
+
+            verticalAlignment =
+                Alignment.CenterVertically
+        ) {
+
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        Color(0xFFEF4444)
+                            .copy(alpha = 0.1f),
+                        RoundedCornerShape(10.dp)
+                    ),
+
+                contentAlignment =
+                    Alignment.Center
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Rounded.PictureAsPdf,
+
+                    contentDescription = null,
+
+                    tint = Color(0xFFEF4444),
+
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(
+                modifier = Modifier.width(16.dp)
+            )
+
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+
+                Text(
+                    text = file.name,
+
+                    fontWeight = FontWeight.Bold,
+
+                    fontSize = 14.sp,
+
+                    maxLines = 1,
+
+                    overflow =
+                        TextOverflow.Ellipsis
+                )
+
+                Text(
+                    text =
+                        "${file.length() / 1024} KB � PDF",
+
+                    fontSize = 11.sp,
+
+                    color = Color.Gray
+                )
+            }
+
+            IconButton(
+                onClick = onDelete
+            ) {
+
+                Icon(
+                    imageVector =
+                        Icons.Rounded.Delete,
+
+                    contentDescription =
+                        "Delete",
+
+                    tint =
+                        Color.LightGray.copy(
+                            alpha = 0.6f
+                        ),
+
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\notes\NotesTool.kt
+============================================================
+
+package cvam.dignity.bhumess.notes
+
+import androidx.compose.runtime.Composable
+import cvam.dignity.bhumess.drive.DriveExplorer
+
+/**
+ * Notes tool.
+ *
+ * Uses the shared DriveExplorer so the same Drive browser
+ * can also be used by the PYQs tool.
+ */
+@Composable
+fun NotesTool(
+    onBack: () -> Unit
+) {
+    DriveExplorer(
+        folderId = "116XFzMyxgGi6TwMffEyU1wC31768v-Eu",
+        title = "Study Notes",
+        onBack = onBack
+    )
+}
+
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\pdfViewer\PdfViewerScreen.kt
+============================================================
+
+package cvam.dignity.bhumess.pdfViewer
+
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import com.rizzi.bouquet.ResourceType
+import com.rizzi.bouquet.VerticalPDFReader
+import com.rizzi.bouquet.rememberVerticalPdfReaderState
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun PdfViewerScreen(
+    uri: String,
+    title: String,
+    onBack: () -> Unit
+) {
+    val pdfUri = remember(uri) {
+        Uri.parse(uri)
+    }
+
+    var showInfo by remember {
+        mutableStateOf(false)
+    }
+
+    val pdfState = rememberVerticalPdfReaderState(
+        resource = ResourceType.Local(pdfUri),
+        isZoomEnable = true,
+        isAccessibleEnable = false
+    )
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = title,
+                        maxLines = 1
+                    )
+                },
+
+                navigationIcon = {
+                    IconButton(
+                        onClick = onBack
+                    ) {
+                        Icon(
+                            imageVector =
+                                Icons.AutoMirrored.Rounded.ArrowBack,
+                            contentDescription = "Back"
+                        )
+                    }
+                },
+
+                actions = {
+                    IconButton(
+                        onClick = {
+                            showInfo = true
+                        }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.Info,
+                            contentDescription = "PDF information"
+                        )
+                    }
+                }
+            )
+        }
+    ) { paddingValues ->
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFFE8E8E8))
+                .padding(paddingValues)
+        ) {
+
+            VerticalPDFReader(
+                state = pdfState,
+                modifier = Modifier.fillMaxSize()
+            )
+
+            pdfState.error?.let {
+                Text(
+                    text = "Unable to open PDF",
+                    modifier = Modifier.align(
+                        Alignment.Center
+                    )
+                )
+            }
+        }
+    }
+
+    if (showInfo) {
+        PdfInfoDialog(
+            title = title,
+            onDismiss = {
+                showInfo = false
+            }
+        )
+    }
+}
+
+============================================================
+FILE: .\app\src\main\java\cvam\dignity\bhumess\DashboardScreen.kt
+============================================================
+
+package cvam.dignity.bhumess
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Assignment
+import androidx.compose.material.icons.rounded.AutoStories
+import androidx.compose.material.icons.rounded.CloudDone
+import androidx.compose.material.icons.rounded.HistoryEdu
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import cvam.dignity.bhumess.navigation.AppDestination
+
+@Composable
+fun DashboardScreen(
+    onNavigate: (AppDestination) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                MaterialTheme.colorScheme.background
+            )
+            .padding(
+                horizontal = 24.dp,
+                vertical = 20.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Spacer(
+            modifier = Modifier.height(12.dp)
+        )
+
+        Text(
+            text = "BHUMESS",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Black
+        )
+
+        Spacer(
+            modifier = Modifier.height(4.dp)
+        )
+
+        Text(
+            text = "Academic Resources",
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        Spacer(
+            modifier = Modifier.height(44.dp)
+        )
+
+        // -----------------------------------------
+        // ROW 1
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            CircularTool(
+                title = "Notes",
+                icon = Icons.Rounded.AutoStories,
+                color = Color(0xFF6366F1),
+                onClick = {
+                    // Internally still uses Study until
+                    // AppDestination.Study is renamed to Notes.
+                    onNavigate(
+                        AppDestination.Study
+                    )
+                }
+            )
+
+            CircularTool(
+                title = "PYQs",
+                icon = Icons.Rounded.HistoryEdu,
+                color = Color(0xFF10B981),
+                onClick = {
+                    onNavigate(
+                        AppDestination.Pyqs
+                    )
+                }
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.height(48.dp)
+        )
+
+        // -----------------------------------------
+        // ROW 2
+        // -----------------------------------------
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+
+            CircularTool(
+                title = "Syllabus",
+                icon = Icons.Rounded.Assignment,
+                color = Color(0xFFF59E0B),
+                onClick = {
+                    onNavigate(
+                        AppDestination.Syllabus
+                    )
+                }
+            )
+
+            CircularTool(
+                title = "Downloads",
+                icon = Icons.Rounded.CloudDone,
+                color = Color(0xFF3B82F6),
+                onClick = {
+                    onNavigate(
+                        AppDestination.Downloads
+                    )
+                }
+            )
+        }
+
+        Spacer(
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+
+// -----------------------------------------------
+// Circular Tool Button
+// -----------------------------------------------
+
+@Composable
+private fun CircularTool(
+    title: String,
+    icon: ImageVector,
+    color: Color,
+    onClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier.width(100.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+
+        Box(
+            modifier = Modifier
+                .size(72.dp)
+                .shadow(
+                    elevation = 5.dp,
+                    shape = CircleShape
+                )
+                .background(
+                    color = color,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.White,
+                    modifier = Modifier.size(29.dp)
+                )
+            }
+        }
+
+        Spacer(
+            modifier = Modifier.height(9.dp)
+        )
+
+        Text(
+            text = title,
+            fontSize = 13.sp,
+            fontWeight = FontWeight.SemiBold,
+            maxLines = 1
+        )
+    }
+}

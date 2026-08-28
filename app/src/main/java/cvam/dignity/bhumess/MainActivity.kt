@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -23,6 +24,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import com.google.android.play.core.appupdate.AppUpdateManager
+import com.google.android.play.core.appupdate.AppUpdateManagerFactory
+import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.UpdateAvailability
 import cvam.dignity.bhumess.drive.DriveExplorer
 import cvam.dignity.bhumess.navigation.AppDestination
 import cvam.dignity.bhumess.pdfViewer.PdfViewerScreen
@@ -31,9 +37,33 @@ import cvam.dignity.bhumess.ui.theme.BHUMESSTheme
 
 class MainActivity : FragmentActivity() {
 
+    // =========================================================
+    // Google Play In-App Update
+    // =========================================================
+
+    private lateinit var appUpdateManager: AppUpdateManager
+
+    private val updateLauncher =
+        registerForActivityResult(
+            ActivityResultContracts.StartIntentSenderForResult()
+        ) { result ->
+
+            if (result.resultCode != RESULT_OK) {
+                // User cancelled the update or the update failed.
+                // No action required here.
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         enableEdgeToEdge()
+
+        // Initialize Google Play update manager
+        appUpdateManager = AppUpdateManagerFactory.create(this)
+
+        // Check for available update
+        checkForAppUpdate()
 
         setContent {
             BHUMESSTheme {
@@ -41,29 +71,85 @@ class MainActivity : FragmentActivity() {
             }
         }
     }
+
+    // =========================================================
+    // Check Google Play for App Update
+    // =========================================================
+
+    private fun checkForAppUpdate() {
+
+        appUpdateManager.appUpdateInfo
+            .addOnSuccessListener { appUpdateInfo ->
+
+                if (
+                    appUpdateInfo.updateAvailability() ==
+                    UpdateAvailability.UPDATE_AVAILABLE &&
+
+                    appUpdateInfo.isUpdateTypeAllowed(
+                        AppUpdateOptions.newBuilder(
+                            AppUpdateType.IMMEDIATE
+                        ).build()
+                    )
+                ) {
+
+                    appUpdateManager.startUpdateFlowForResult(
+                        appUpdateInfo,
+                        updateLauncher,
+                        AppUpdateOptions.newBuilder(
+                            AppUpdateType.IMMEDIATE
+                        ).build()
+                    )
+                }
+            }
+    }
 }
+
+
+// =============================================================
+// Main App Navigation
+// =============================================================
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApp() {
+
     val destinationStack = remember {
-        mutableStateListOf<AppDestination>(AppDestination.Main)
+        mutableStateListOf<AppDestination>(
+            AppDestination.Main
+        )
     }
 
     val currentDestination by remember {
         derivedStateOf {
-            destinationStack.lastOrNull() ?: AppDestination.Main
+            destinationStack.lastOrNull()
+                ?: AppDestination.Main
         }
     }
 
-    BackHandler(enabled = destinationStack.size > 1) {
-        destinationStack.removeAt(destinationStack.lastIndex)
+    // =========================================================
+    // Back Navigation
+    // =========================================================
+
+    BackHandler(
+        enabled = destinationStack.size > 1
+    ) {
+        destinationStack.removeAt(
+            destinationStack.lastIndex
+        )
     }
 
+    // =========================================================
+    // Main Scaffold
+    // =========================================================
+
     Scaffold(
+
         topBar = {
+
             if (currentDestination == AppDestination.Main) {
+
                 CenterAlignedTopAppBar(
+
                     title = {
                         Text(
                             text = "BHUMESS",
@@ -73,67 +159,130 @@ fun MainApp() {
                 )
             }
         }
+
     ) { innerPadding ->
+
         val contentModifier =
             if (currentDestination == AppDestination.Main) {
+
                 Modifier.padding(innerPadding)
+
             } else {
+
                 Modifier
             }
 
         Box(
             modifier = contentModifier
                 .fillMaxSize()
-                .background(MaterialTheme.colorScheme.background)
+                .background(
+                    MaterialTheme.colorScheme.background
+                )
         ) {
+
             AnimatedContent(
                 targetState = currentDestination,
                 label = "Transition"
             ) { destination ->
 
                 when (destination) {
+
+                    // =================================================
+                    // HOME
+                    // =================================================
+
                     AppDestination.Main -> {
+
                         DashboardScreen(
-                            onNavigate = { destinationStack.add(it) }
-                        )
-                    }
-
-                    AppDestination.ScoreCalculator -> {
-                        ScoreCalculatorScreen(
-                            onBack = {
-                                if (destinationStack.size > 1) {
-                                    destinationStack.removeAt(destinationStack.lastIndex)
-                                }
-                            }
-                        )
-                    }
-
-                    AppDestination.DownloadedFiles -> {
-                        DownloadedFilesScreen(
-                            onBack = {
-                                if (destinationStack.size > 1) {
-                                    destinationStack.removeAt(destinationStack.lastIndex)
-                                }
-                            },
-                            onViewFile = {
+                            onNavigate = {
                                 destinationStack.add(it)
                             }
                         )
                     }
 
-                    is AppDestination.DriveExplorer -> {
-                        DriveExplorer(
-                            initialFolderId = destination.folderId,
-                            initialFolderName = destination.title,
+
+                    // =================================================
+                    // SCORE CALCULATOR
+                    // =================================================
+
+                    AppDestination.ScoreCalculator -> {
+
+                        ScoreCalculatorScreen(
                             onBack = {
-                                if (destinationStack.size > 1) {
-                                    destinationStack.removeAt(destinationStack.lastIndex)
+
+                                if (
+                                    destinationStack.size > 1
+                                ) {
+                                    destinationStack.removeAt(
+                                        destinationStack.lastIndex
+                                    )
+                                }
+                            }
+                        )
+                    }
+
+
+                    // =================================================
+                    // DOWNLOADED FILES
+                    // =================================================
+
+                    AppDestination.DownloadedFiles -> {
+
+                        DownloadedFilesScreen(
+
+                            onBack = {
+
+                                if (
+                                    destinationStack.size > 1
+                                ) {
+                                    destinationStack.removeAt(
+                                        destinationStack.lastIndex
+                                    )
                                 }
                             },
-                            onOpenDownloads = {
-                                destinationStack.add(AppDestination.DownloadedFiles)
+
+                            onViewFile = {
+
+                                destinationStack.add(it)
+                            }
+                        )
+                    }
+
+
+                    // =================================================
+                    // GOOGLE DRIVE EXPLORER
+                    // =================================================
+
+                    is AppDestination.DriveExplorer -> {
+
+                        DriveExplorer(
+
+                            initialFolderId =
+                                destination.folderId,
+
+                            initialFolderName =
+                                destination.title,
+
+                            onBack = {
+
+                                if (
+                                    destinationStack.size > 1
+                                ) {
+                                    destinationStack.removeAt(
+                                        destinationStack.lastIndex
+                                    )
+                                }
                             },
+
+                            onOpenDownloads = {
+
+                                destinationStack.add(
+                                    AppDestination.DownloadedFiles
+                                )
+                            },
+
                             onOpenPdf = { uri, title ->
+
                                 destinationStack.add(
                                     AppDestination.PdfViewer(
                                         uri = uri,
@@ -144,24 +293,53 @@ fun MainApp() {
                         )
                     }
 
+
+                    // =================================================
+                    // HTML / WEB TOOL
+                    // =================================================
+
                     is AppDestination.HtmlViewer -> {
+
                         BhuHtmlViewerScreen(
-                            destination.url,
-                            destination.title
-                        ) {
-                            if (destinationStack.size > 1) {
-                                destinationStack.removeAt(destinationStack.lastIndex)
+
+                            url = destination.url,
+
+                            title = destination.title,
+
+                            onBack = {
+
+                                if (
+                                    destinationStack.size > 1
+                                ) {
+                                    destinationStack.removeAt(
+                                        destinationStack.lastIndex
+                                    )
+                                }
                             }
-                        }
+                        )
                     }
 
+
+                    // =================================================
+                    // PDF VIEWER
+                    // =================================================
+
                     is AppDestination.PdfViewer -> {
+
                         PdfViewerScreen(
+
                             uri = destination.uri,
+
                             title = destination.title,
+
                             onBack = {
-                                if (destinationStack.size > 1) {
-                                    destinationStack.removeAt(destinationStack.lastIndex)
+
+                                if (
+                                    destinationStack.size > 1
+                                ) {
+                                    destinationStack.removeAt(
+                                        destinationStack.lastIndex
+                                    )
                                 }
                             }
                         )
