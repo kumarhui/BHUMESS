@@ -1,4 +1,4 @@
-﻿package cvam.dignity.bhumess
+package cvam.dignity.bhumess
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Assignment
@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.AutoStories
 import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,21 +31,28 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import cvam.dignity.bhumess.SubView
+import cvam.dignity.bhumess.navigation.AppDestination
+
+private const val NOTES_FOLDER_ID = "116XFzMyxgGi6TwMffEyU1wC31768v-Eu"
+private const val PYQS_FOLDER_ID = "1YITLhxtuu8mh4HlBGEe8XlIp-XuctbCq"
+private const val SYLLABUS_URL =
+    "https://zodax.gamer.gd/BHU_JI_NEO/index.html?i=1"
 
 @Composable
-fun StudyResourcesScreen(
-    onNavigate: (SubView) -> Unit
+fun DashboardScreen(
+    onNavigate: (AppDestination) -> Unit
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = 24.dp, vertical = 20.dp),
+            .padding(
+                horizontal = 24.dp,
+                vertical = 20.dp
+            ),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(Modifier.height(12.dp))
 
         Text(
             text = "BHUMESS",
@@ -52,7 +60,7 @@ fun StudyResourcesScreen(
             fontWeight = FontWeight.Black
         )
 
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(Modifier.height(4.dp))
 
         Text(
             text = "Academic Resources",
@@ -60,23 +68,22 @@ fun StudyResourcesScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
-        Spacer(modifier = Modifier.height(44.dp))
+        Spacer(Modifier.height(44.dp))
 
-        // Row 1
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             CircularTool(
-                title = "Study Notes",
+                title = "Notes",
                 icon = Icons.Rounded.AutoStories,
                 color = Color(0xFF6366F1),
                 onClick = {
                     onNavigate(
-                        SubView.DriveExplorer(
-                            "116XFzMyxgGi6TwMffEyU1wC31768v-Eu",
-                            "Study Notes"
+                        AppDestination.DriveExplorer(
+                            folderId = NOTES_FOLDER_ID,
+                            title = "Notes"
                         )
                     )
                 }
@@ -88,32 +95,31 @@ fun StudyResourcesScreen(
                 color = Color(0xFF10B981),
                 onClick = {
                     onNavigate(
-                        SubView.DriveExplorer(
-                            "1YITLhxtuu8mh4HlBGEe8XlIp-XuctbCq",
-                            "Question Bank"
+                        AppDestination.DriveExplorer(
+                            folderId = PYQS_FOLDER_ID,
+                            title = "PYQs"
                         )
                     )
                 }
             )
         }
 
-        Spacer(modifier = Modifier.height(48.dp))
+        Spacer(Modifier.height(48.dp))
 
-        // Row 2
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
             CircularTool(
-                title = "Syllabus Hub",
+                title = "Syllabus",
                 icon = Icons.Rounded.Assignment,
                 color = Color(0xFFF59E0B),
                 onClick = {
                     onNavigate(
-                        SubView.HtmlViewer(
-                            "https://zodax.gamer.gd/BHU_JI_NEO/index.html?i=1",
-                            "Syllabus Hub"
+                        AppDestination.HtmlViewer(
+                            url = SYLLABUS_URL,
+                            title = "Syllabus"
                         )
                     )
                 }
@@ -124,12 +130,12 @@ fun StudyResourcesScreen(
                 icon = Icons.Rounded.CloudDone,
                 color = Color(0xFF3B82F6),
                 onClick = {
-                    onNavigate(SubView.DownloadedFiles)
+                    onNavigate(AppDestination.DownloadedFiles)
                 }
             )
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(Modifier.weight(1f))
     }
 }
 
@@ -141,31 +147,30 @@ private fun CircularTool(
     onClick: () -> Unit
 ) {
     Column(
-        modifier = Modifier.width(96.dp),
+        modifier = Modifier.width(100.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        androidx.compose.material3.IconButton(
-            onClick = onClick,
+        Box(
             modifier = Modifier
                 .size(72.dp)
-                .shadow(
-                    elevation = 4.dp,
-                    shape = CircleShape
-                )
-                .background(
-                    color = color,
-                    shape = CircleShape
-                )
+                .shadow(5.dp, CircleShape)
+                .background(color, CircleShape),
+            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = title,
-                tint = Color.White,
-                modifier = Modifier.size(28.dp)
-            )
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = title,
+                    tint = Color.White,
+                    modifier = Modifier.size(29.dp)
+                )
+            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(9.dp))
 
         Text(
             text = title,

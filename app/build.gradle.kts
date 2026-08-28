@@ -82,19 +82,6 @@ android {
     }
 }
 
-// 16 KB compatibility for Fresco/Soloader dependencies
-configurations.all {
-    resolutionStrategy {
-        force(
-            "com.facebook.fresco:fresco:3.4.0"
-        )
-
-        force(
-            "com.facebook.soloader:soloader:0.12.1"
-        )
-    }
-}
-
 tasks.withType<
         org.jetbrains.kotlin.gradle.tasks.KotlinCompile
         >().configureEach {
@@ -212,6 +199,7 @@ dependencies {
         "com.itextpdf:itextg:5.5.10"
     )
 
+    implementation("io.github.grizzi91:bouquet:1.1.2")
 
     // =========================================================
     // Google Drive API

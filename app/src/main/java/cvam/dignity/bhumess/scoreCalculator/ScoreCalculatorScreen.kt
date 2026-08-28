@@ -26,7 +26,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import cvam.dignity.bhumess.SubView
+import cvam.dignity.bhumess.navigation.AppDestination
 
 /**
  * Premium Web-Based Score Calculator Screen.
@@ -37,7 +37,7 @@ import cvam.dignity.bhumess.SubView
 @Composable
 fun ScoreCalculatorScreen(
     isTabMode: Boolean = false,
-    onNavigate: (SubView) -> Unit = {}, // Added to match MainActivity call
+    onNavigate: (AppDestination) -> Unit = {}, // Added to match MainActivity call
     onBack: (() -> Unit)? = null
 ) {
     val context = LocalContext.current

@@ -1,4 +1,4 @@
-﻿package cvam.dignity.bhumess
+package cvam.dignity.bhumess
 
 import android.os.Bundle
 import androidx.activity.compose.BackHandler
@@ -11,26 +11,28 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
+import cvam.dignity.bhumess.drive.DriveExplorer
+import cvam.dignity.bhumess.navigation.AppDestination
+import cvam.dignity.bhumess.pdfViewer.PdfViewerScreen
+import cvam.dignity.bhumess.screens.BhuHtmlViewerScreen
 import cvam.dignity.bhumess.ui.theme.BHUMESSTheme
 
 class MainActivity : FragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         enableEdgeToEdge()
 
         setContent {
@@ -44,50 +46,23 @@ class MainActivity : FragmentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApp() {
-
-    val subViewStack = remember {
-        mutableStateListOf<SubView>(SubView.Main)
+    val destinationStack = remember {
+        mutableStateListOf<AppDestination>(AppDestination.Main)
     }
 
-    /*
-     * Drive Explorer's folder hierarchy must live above
-     * DriveExplorerScreen so that navigation inside the
-     * explorer survives when another screen is opened.
-     */
-    var explorerFolderStack by remember {
-        mutableStateOf<List<FolderEntry>?>(null)
-    }
-
-    val currentSubView by remember {
+    val currentDestination by remember {
         derivedStateOf {
-            subViewStack.lastOrNull() ?: SubView.Main
+            destinationStack.lastOrNull() ?: AppDestination.Main
         }
     }
 
-    /*
-     * System back navigation.
-     *
-     * Drive Explorer handles its own internal navigation.
-     * Other screens simply pop the current destination.
-     */
-    BackHandler(
-        enabled = subViewStack.size > 1 &&
-                currentSubView !is SubView.DriveExplorer
-    ) {
-        subViewStack.removeAt(subViewStack.lastIndex)
+    BackHandler(enabled = destinationStack.size > 1) {
+        destinationStack.removeAt(destinationStack.lastIndex)
     }
 
     Scaffold(
         topBar = {
-
-            /*
-             * Main dashboard gets a simple clean top bar.
-             *
-             * App drawer / hamburger button removed.
-             * Downloads shortcut removed.
-             */
-            if (currentSubView == SubView.Main) {
-
+            if (currentDestination == AppDestination.Main) {
                 CenterAlignedTopAppBar(
                     title = {
                         Text(
@@ -99,211 +74,98 @@ fun MainApp() {
             }
         }
     ) { innerPadding ->
-
-        /*
-         * Main dashboard uses the Scaffold padding.
-         *
-         * Other screens retain their own top-bar/layout behavior.
-         */
         val contentModifier =
-            if (currentSubView == SubView.Main) {
+            if (currentDestination == AppDestination.Main) {
                 Modifier.padding(innerPadding)
             } else {
-                Modifier.padding(
-                    top = 0.dp
-                )
+                Modifier
             }
 
         Box(
             modifier = contentModifier
                 .fillMaxSize()
-                .background(
-                    androidx.compose.material3.MaterialTheme
-                        .colorScheme
-                        .background
-                )
+                .background(MaterialTheme.colorScheme.background)
         ) {
-
             AnimatedContent(
-                targetState = currentSubView,
+                targetState = currentDestination,
                 label = "Transition"
-            ) { view ->
+            ) { destination ->
 
-                when (view) {
+                when (destination) {
+                    AppDestination.Main -> {
+                        DashboardScreen(
+                            onNavigate = { destinationStack.add(it) }
+                        )
+                    }
 
-                    /*
-                     * =========================
-                     * DASHBOARD
-                     * =========================
-                     *
-                     * StudyResourcesScreen now contains
-                     * exactly four circular tools:
-                     *
-                     * 1. Study Notes
-                     * 2. PYQs
-                     * 3. Syllabus Hub
-                     * 4. Downloads
-                     */
-                    is SubView.Main -> {
+                    AppDestination.ScoreCalculator -> {
+                        ScoreCalculatorScreen(
+                            onBack = {
+                                if (destinationStack.size > 1) {
+                                    destinationStack.removeAt(destinationStack.lastIndex)
+                                }
+                            }
+                        )
+                    }
 
-                        StudyResourcesScreen { target ->
+                    AppDestination.DownloadedFiles -> {
+                        DownloadedFilesScreen(
+                            onBack = {
+                                if (destinationStack.size > 1) {
+                                    destinationStack.removeAt(destinationStack.lastIndex)
+                                }
+                            },
+                            onViewFile = {
+                                destinationStack.add(it)
+                            }
+                        )
+                    }
 
-                            if (target is SubView.DriveExplorer) {
-
-                                explorerFolderStack = listOf(
-                                    FolderEntry(
-                                        target.folderId,
-                                        target.title
+                    is AppDestination.DriveExplorer -> {
+                        DriveExplorer(
+                            initialFolderId = destination.folderId,
+                            initialFolderName = destination.title,
+                            onBack = {
+                                if (destinationStack.size > 1) {
+                                    destinationStack.removeAt(destinationStack.lastIndex)
+                                }
+                            },
+                            onOpenDownloads = {
+                                destinationStack.add(AppDestination.DownloadedFiles)
+                            },
+                            onOpenPdf = { uri, title ->
+                                destinationStack.add(
+                                    AppDestination.PdfViewer(
+                                        uri = uri,
+                                        title = title
                                     )
                                 )
                             }
-
-                            subViewStack.add(target)
-                        }
-                    }
-
-                    /*
-                     * =========================
-                     * SCORE CALCULATOR
-                     * =========================
-                     */
-                    is SubView.ScoreCalculator -> {
-
-                        ScoreCalculatorScreen {
-                            subViewStack.removeAt(
-                                subViewStack.lastIndex
-                            )
-                        }
-                    }
-
-                    /*
-                     * =========================
-                     * DOWNLOADS
-                     * =========================
-                     */
-                    is SubView.DownloadedFiles -> {
-
-                        DownloadedFilesScreen(
-                            onBack = {
-                                subViewStack.removeAt(
-                                    subViewStack.lastIndex
-                                )
-                            },
-
-                            onViewFile = {
-                                subViewStack.add(it)
-                            }
                         )
                     }
 
-                    /*
-                     * =========================
-                     * DRIVE EXPLORER
-                     * =========================
-                     */
-                    is SubView.DriveExplorer -> {
-
-                        DriveExplorerScreen(
-
-                            initialFolderId = view.folderId,
-
-                            initialFolderName = view.title,
-
-                            initialFolderStack =
-                                explorerFolderStack
-                                    ?: listOf(
-                                        FolderEntry(
-                                            view.folderId,
-                                            view.title
-                                        )
-                                    ),
-
-                            onExitExplorer = {
-
-                                explorerFolderStack = null
-
-                                subViewStack.removeAt(
-                                    subViewStack.lastIndex
-                                )
-                            },
-
-                            onOpenDownloads = {
-
-                                subViewStack.add(
-                                    SubView.DownloadedFiles
-                                )
-                            },
-
-                            onFolderStackChanged = {
-                                    updatedStack ->
-
-                                explorerFolderStack =
-                                    updatedStack
-                            },
-
-                            onNavigate = {
-                                    target ->
-
-                                subViewStack.add(target)
-                            }
-                        )
-                    }
-
-                    /*
-                     * =========================
-                     * HTML VIEWER
-                     * =========================
-                     */
-                    is SubView.HtmlViewer -> {
-
+                    is AppDestination.HtmlViewer -> {
                         BhuHtmlViewerScreen(
-                            view.url,
-                            view.title
+                            destination.url,
+                            destination.title
                         ) {
-
-                            subViewStack.removeAt(
-                                subViewStack.lastIndex
-                            )
+                            if (destinationStack.size > 1) {
+                                destinationStack.removeAt(destinationStack.lastIndex)
+                            }
                         }
                     }
 
-                    /*
-                     * =========================
-                     * PDF VIEWER
-                     * =========================
-                     */
-                    is SubView.PdfViewer -> {
-
+                    is AppDestination.PdfViewer -> {
                         PdfViewerScreen(
-                            view.uri,
-                            view.title
-                        ) {
-
-                            subViewStack.removeAt(
-                                subViewStack.lastIndex
-                            )
-                        }
+                            uri = destination.uri,
+                            title = destination.title,
+                            onBack = {
+                                if (destinationStack.size > 1) {
+                                    destinationStack.removeAt(destinationStack.lastIndex)
+                                }
+                            }
+                        )
                     }
-
-                    /*
-                     * =========================
-                     * PROFILE
-                     * =========================
-                     *
-                     * Still supported internally.
-                     * It is simply no longer exposed
-                     * through the app drawer.
-                     */
-
-                    /*
-                     * =========================
-                     * SETTINGS
-                     * =========================
-                     *
-                     * Still supported internally.
-                     */
-
-                    else -> Unit
                 }
             }
         }
