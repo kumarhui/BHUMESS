@@ -22,7 +22,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import cvam.dignity.bhumess.ui.components.BhuTopBar
 
 @SuppressLint("SetJavaScriptEnabled")
 @OptIn(ExperimentalMaterial3Api::class)
@@ -57,11 +56,34 @@ fun BhuHtmlViewerScreen(
 
     Scaffold(
         topBar = {
-            BhuTopBar(
-                title = title,
-                onBack = onBack
-            )
-        }    ) { padding ->
+            Box(
+                Modifier
+                    .background(Color.White)
+                    .statusBarsPadding()
+            ) {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = title,
+                            fontWeight = FontWeight.Black,
+                            fontSize = 18.sp
+                        )
+                    },
+                    navigationIcon = {
+                        IconButton(onClick = onBack) {
+                            Icon(
+                                imageVector = Icons.Rounded.ArrowBackIosNew,
+                                contentDescription = "Back"
+                            )
+                        }
+                    },
+                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
+                        containerColor = Color.Transparent
+                    )
+                )
+            }
+        }
+    ) { padding ->
 
         Box(
             Modifier

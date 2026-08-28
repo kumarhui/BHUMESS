@@ -9,20 +9,14 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
 import com.google.android.play.core.appupdate.AppUpdateManager
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
@@ -49,8 +43,7 @@ class MainActivity : FragmentActivity() {
         ) { result ->
 
             if (result.resultCode != RESULT_OK) {
-                // User cancelled the update or the update failed.
-                // No action required here.
+                // User cancelled the update or update failed.
             }
         }
 
@@ -62,7 +55,7 @@ class MainActivity : FragmentActivity() {
         // Initialize Google Play update manager
         appUpdateManager = AppUpdateManagerFactory.create(this)
 
-        // Check for available update
+        // Check for update
         checkForAppUpdate()
 
         setContent {
@@ -73,7 +66,7 @@ class MainActivity : FragmentActivity() {
     }
 
     // =========================================================
-    // Check Google Play for App Update
+    // Google Play Update Check
     // =========================================================
 
     private fun checkForAppUpdate() {
@@ -109,7 +102,6 @@ class MainActivity : FragmentActivity() {
 // Main App Navigation
 // =============================================================
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainApp() {
 
@@ -139,41 +131,17 @@ fun MainApp() {
     }
 
     // =========================================================
-    // Main Scaffold
+    // Root Scaffold
+    //
+    // IMPORTANT:
+    // MainActivity no longer owns a top bar.
+    // Each screen owns its own header/top bar.
     // =========================================================
 
-    Scaffold(
-
-        topBar = {
-
-            if (currentDestination == AppDestination.Main) {
-
-                CenterAlignedTopAppBar(
-
-                    title = {
-                        Text(
-                            text = "BHUMESS",
-                            fontWeight = FontWeight.Black
-                        )
-                    }
-                )
-            }
-        }
-
-    ) { innerPadding ->
-
-        val contentModifier =
-            if (currentDestination == AppDestination.Main) {
-
-                Modifier.padding(innerPadding)
-
-            } else {
-
-                Modifier
-            }
+    Scaffold { _ ->
 
         Box(
-            modifier = contentModifier
+            modifier = Modifier
                 .fillMaxSize()
                 .background(
                     MaterialTheme.colorScheme.background
@@ -188,7 +156,7 @@ fun MainApp() {
                 when (destination) {
 
                     // =================================================
-                    // HOME
+                    // DASHBOARD
                     // =================================================
 
                     AppDestination.Main -> {
@@ -242,7 +210,6 @@ fun MainApp() {
                             },
 
                             onViewFile = {
-
                                 destinationStack.add(it)
                             }
                         )
@@ -295,7 +262,7 @@ fun MainApp() {
 
 
                     // =================================================
-                    // HTML / WEB TOOL
+                    // HTML / WEB VIEWER
                     // =================================================
 
                     is AppDestination.HtmlViewer -> {
