@@ -35,6 +35,7 @@ import androidx.compose.material.icons.rounded.CloudDone
 import androidx.compose.material.icons.rounded.HistoryEdu
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -51,6 +52,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +96,12 @@ fun DashboardScreen(
     var showInfoDialog by remember {
         mutableStateOf(false)
     }
+
+    var openingDrive by remember {
+        mutableStateOf(false)
+    }
+
+    val scope = rememberCoroutineScope()
 
 
     Scaffold { _ ->
@@ -166,13 +174,22 @@ fun DashboardScreen(
                         icon = Icons.Rounded.AutoStories,
                         color = Color(0xFF6366F1),
                         onClick = {
+                            if (openingDrive) return@DashboardTool
 
-                            onNavigate(
-                                AppDestination.DriveExplorer(
-                                    folderId = NOTES_FOLDER_ID,
-                                    title = "Notes"
+                            openingDrive = true
+
+                            scope.launch {
+                                // Give Compose one frame to draw the loading UI
+                                // before changing the destination.
+                                withFrameNanos { }
+
+                                onNavigate(
+                                    AppDestination.DriveExplorer(
+                                        folderId = NOTES_FOLDER_ID,
+                                        title = "Notes"
+                                    )
                                 )
-                            )
+                            }
                         }
                     )
 
@@ -182,13 +199,22 @@ fun DashboardScreen(
                         icon = Icons.Rounded.HistoryEdu,
                         color = Color(0xFF10B981),
                         onClick = {
+                            if (openingDrive) return@DashboardTool
 
-                            onNavigate(
-                                AppDestination.DriveExplorer(
-                                    folderId = PYQS_FOLDER_ID,
-                                    title = "PYQs"
+                            openingDrive = true
+
+                            scope.launch {
+                                // Give Compose one frame to draw the loading UI
+                                // before changing the destination.
+                                withFrameNanos { }
+
+                                onNavigate(
+                                    AppDestination.DriveExplorer(
+                                        folderId = PYQS_FOLDER_ID,
+                                        title = "PYQs"
+                                    )
                                 )
-                            )
+                            }
                         }
                     )
 
@@ -265,6 +291,36 @@ fun DashboardScreen(
         }
     }
 
+
+    if (openingDrive) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    MaterialTheme.colorScheme.background.copy(alpha = 0.94f)
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                CircularProgressIndicator(
+                    strokeWidth = 3.dp
+                )
+
+                Spacer(
+                    modifier = Modifier.height(14.dp)
+                )
+
+                Text(
+                    text = "Opening resources...",
+                    fontSize = 13.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 
     // =============================================================
     // WhatsApp Dialog

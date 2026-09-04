@@ -1,5 +1,8 @@
 package cvam.dignity.bhumess
 
+import android.app.DownloadManager
+import android.content.Context
+import android.net.Uri
 import android.os.Environment
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -23,6 +26,132 @@ import androidx.compose.ui.unit.sp
 import androidx.core.content.FileProvider
 import cvam.dignity.bhumess.navigation.AppDestination
 import java.io.File
+
+private fun deleteDownloadedFile(
+    context: Context,
+    file: File
+): Boolean {
+    if (!file.exists()) return true
+
+    val dm =
+        context.getSystemService(
+            Context.DOWNLOAD_SERVICE
+        ) as DownloadManager
+
+    try {
+        dm.query(
+            DownloadManager.Query()
+        ).use { cursor ->
+
+            if (cursor.moveToFirst()) {
+
+                val idIndex =
+                    cursor.getColumnIndex(
+                        DownloadManager.COLUMN_ID
+                    )
+
+                val localUriIndex =
+                    cursor.getColumnIndex(
+                        DownloadManager.COLUMN_LOCAL_URI
+                    )
+
+                val mediaProviderUriIndex =
+                    cursor.getColumnIndex(
+                        DownloadManager.COLUMN_MEDIAPROVIDER_URI
+                    )
+
+                val titleIndex =
+                    cursor.getColumnIndex(
+                        DownloadManager.COLUMN_TITLE
+                    )
+
+                do {
+                    val id =
+                        if (idIndex >= 0) {
+                            cursor.getLong(idIndex)
+                        } else {
+                            -1L
+                        }
+
+                    val localUri =
+                        if (localUriIndex >= 0) {
+                            cursor.getString(localUriIndex)
+                        } else {
+                            null
+                        }
+
+                    val mediaProviderUri =
+                        if (mediaProviderUriIndex >= 0) {
+                            cursor.getString(mediaProviderUriIndex)
+                        } else {
+                            null
+                        }
+
+                    val title =
+                        if (titleIndex >= 0) {
+                            cursor.getString(titleIndex)
+                        } else {
+                            null
+                        }
+
+                    val fileUri =
+                        file.toURI().toString()
+
+                    val sameFile =
+                        title == file.name ||
+                                localUri == fileUri ||
+                                localUri?.endsWith(
+                                    "/${Uri.encode(file.name)}"
+                                ) == true ||
+                                localUri?.endsWith(
+                                    "/${file.name}"
+                                ) == true ||
+                                mediaProviderUri?.endsWith(
+                                    "/${Uri.encode(file.name)}"
+                                ) == true ||
+                                mediaProviderUri?.endsWith(
+                                    "/${file.name}"
+                                ) == true
+
+                    if (id >= 0L && sameFile) {
+                        /*
+                         * DownloadManager.remove() also removes the
+                         * DownloadManager/MediaProvider record.
+                         */
+                        dm.remove(id)
+                    }
+
+                } while (cursor.moveToNext())
+            }
+        }
+
+    } catch (e: Exception) {
+        android.util.Log.w(
+            "DownloadsScreen",
+            "Could not remove DownloadManager record",
+            e
+        )
+    }
+
+    /*
+     * Fallback for old files whose DownloadManager record no longer exists.
+     */
+    return try {
+        if (file.exists()) {
+            file.delete()
+        }
+
+        !file.exists()
+
+    } catch (e: Exception) {
+        android.util.Log.e(
+            "DownloadsScreen",
+            "Could not delete ${file.absolutePath}",
+            e
+        )
+        false
+    }
+}
 
 /**
  * Offline Library / Downloaded Files
@@ -93,12 +222,14 @@ fun DownloadedFilesScreen(
             confirmButton = {
                 TextButton(
                     onClick = {
-                        file.delete()
+                        val deleted = deleteDownloadedFile(context, file)
 
-                        downloadedFiles =
-                            downloadedFiles.filter {
-                                it.absolutePath != file.absolutePath
-                            }
+                        if (deleted) {
+                            downloadedFiles =
+                                downloadedFiles.filter {
+                                    it.absolutePath != file.absolutePath
+                                }
+                        }
 
                         fileToDelete = null
                     },

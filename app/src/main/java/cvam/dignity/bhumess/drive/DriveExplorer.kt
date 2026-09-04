@@ -19,12 +19,14 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.FileProvider
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -86,17 +88,45 @@ private fun cancelDownload(
     }
 }
 
-private fun deleteLocalFile(
+private fun deleteDownloadedFile(
+    dm: DownloadManager,
     file: File
 ): Boolean {
+    if (!file.exists()) return true
+
+    // A file created by DownloadManager can remain registered there even
+    // after the UI download state has completed. Remove that record first.
+    try {
+        dm.query(DownloadManager.Query()).use { cursor ->
+            if (cursor.moveToFirst()) {
+                val idIndex = cursor.getColumnIndex(DownloadManager.COLUMN_ID)
+                val titleIndex = cursor.getColumnIndex(DownloadManager.COLUMN_TITLE)
+                val localUriIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI)
+
+                do {
+                    val id = if (idIndex >= 0) cursor.getLong(idIndex) else -1L
+                    val title = if (titleIndex >= 0) cursor.getString(titleIndex) else null
+                    val localUri = if (localUriIndex >= 0) cursor.getString(localUriIndex) else null
+
+                    val sameFile =
+                        title == file.name ||
+                                localUri == file.toURI().toString() ||
+                                localUri?.endsWith("/${file.name}") == true
+
+                    if (id >= 0 && sameFile) {
+                        dm.remove(id)
+                    }
+                } while (cursor.moveToNext())
+            }
+        }
+    } catch (e: Exception) {
+        Log.w("DriveExplorer", "Could not remove DownloadManager record", e)
+    }
+
     return try {
         !file.exists() || file.delete()
     } catch (e: Exception) {
-        Log.e(
-            "DriveExplorer",
-            "Failed to delete ${file.absolutePath}",
-            e
-        )
+        Log.e("DriveExplorer", "Failed to delete ${file.absolutePath}", e)
         false
     }
 }
@@ -230,7 +260,7 @@ fun DriveExplorer(
                 folderStack.lastIndex
             )
 
-            
+
 
         } else {
 
@@ -398,7 +428,7 @@ fun DriveExplorer(
                                     folderStack.lastIndex
                                 )
 
-                                
+
 
                             } else {
 
@@ -501,7 +531,7 @@ fun DriveExplorer(
                             )
                         )
 
-                        
+
                     },
 
                     downloadingFiles =
@@ -520,7 +550,7 @@ fun DriveExplorer(
 fun FolderContent(
     folderId: String,
     onFolderClick: (String, String) -> Unit,
-    downloadingFiles: Map<String, Float>,
+    downloadingFiles: MutableMap<String, Float>,
     onOpenPdf: (uri: String, title: String) -> Unit
 ) {
 
@@ -765,16 +795,11 @@ fun FolderContent(
                                 file.name
                             )
 
-                            if (downloadingFiles is MutableMap) {
-                                @Suppress("UNCHECKED_CAST")
-                                (
-                                        downloadingFiles as MutableMap<String, Float>
-                                        ).remove(file.name)
-                            }
+                            downloadingFiles.remove(file.name)
                         }
 
                         if (isDownloaded) {
-                            deleteLocalFile(localFile)
+                            deleteDownloadedFile(dm, localFile)
 
                             /*
                              * Always synchronize the UI with the
@@ -803,8 +828,14 @@ fun FolderContent(
                              */
                             if (isDownloaded) {
 
+                                val pdfUri = FileProvider.getUriForFile(
+                                    context,
+                                    "${context.packageName}.provider",
+                                    localFile
+                                )
+
                                 onOpenPdf(
-                                    localFile.absolutePath,
+                                    pdfUri.toString(),
                                     file.name
                                 )
 
@@ -822,23 +853,7 @@ fun FolderContent(
                                          * Immediately show
                                          * progress.
                                          */
-                                        if (
-                                            downloadingFiles
-                                                    is MutableMap
-                                        ) {
-
-                                            @Suppress(
-                                                "UNCHECKED_CAST"
-                                            )
-
-                                            (
-                                                    downloadingFiles
-                                                            as MutableMap<
-                                                            String,
-                                                            Float
-                                                            >
-                                                    )[file.name] = 0f
-                                        }
+                                        downloadingFiles[file.name] = 0f
 
 
                                         val request =

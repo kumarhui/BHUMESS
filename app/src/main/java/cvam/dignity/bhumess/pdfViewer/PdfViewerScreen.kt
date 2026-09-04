@@ -2,6 +2,7 @@ package cvam.dignity.bhumess.pdfViewer
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -46,6 +47,10 @@ fun PdfViewerScreen(
     onBack: () -> Unit
 ) {
     val context = LocalContext.current
+
+    BackHandler {
+        onBack()
+    }
 
     val pdfUri = remember(uri) {
         Uri.parse(uri)
